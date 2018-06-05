@@ -14,6 +14,7 @@ class MatrixStack;
 class Program;
 class Shape;
 class Solver;
+class SoftBody;
 
 class Scene
 {
@@ -38,8 +39,8 @@ private:
 	double h;
 	Eigen::Vector3d grav;
 	
-	std::shared_ptr<Shape> sphereShape;
-	std::vector< std::shared_ptr<Node> > spheres;
+	//std::shared_ptr<Shape> sphereShape;
+	//std::vector< std::shared_ptr<Node> > spheres;
 };
 
 #endif

@@ -3,6 +3,7 @@
 #include "Scene.h"
 #include "Node.h"
 #include "Shape.h"
+#include "SoftBody.h"
 #include "Program.h"
 #include "Solver.h"
 

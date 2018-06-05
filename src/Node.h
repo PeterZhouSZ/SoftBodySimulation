@@ -24,6 +24,9 @@ public:
 	void reset();
 	void draw(std::shared_ptr<MatrixStack> MV, const std::shared_ptr<Program> p) const;
 	void clearForce();
+	void clearForceDifferential();
+	void addForce(Eigen::Vector3d force);
+	void addForceDifferential(Eigen::Vector3d dforce);
 	
 	double r; // radius
 	double m; // mass

@@ -8,15 +8,17 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
-class Particle;
+class Node;
 class MatrixStack;
 class Program;
 class Tetrahedron;
+class TriFace;
 
 class SoftBody
 {
 public:
 	SoftBody();
+	SoftBody(double _young, double _poisson, Material _material);
 	virtual ~SoftBody();
 
 	void step(double h, const Eigen::Vector3d &grav);
@@ -24,8 +26,10 @@ public:
 	void tare();
 	void reset();
 	void draw(std::shared_ptr<MatrixStack> MV, const std::shared_ptr<Program> p) const;
-
+	void updatePosNor();
 private:
+	std::vector<std::shared_ptr<Node> > nodes;
+	std::vector<std::shared_ptr<TriFace> > trifaces;
 	std::vector<std::shared_ptr<Tetrahedron> > tets;
 	
 	std::vector<unsigned int> eleBuf;
@@ -38,4 +42,8 @@ private:
 	unsigned norBufID;
 	unsigned texBufID;
 
+	int nFacets;
+	double young;
+	double poisson;
+	Material mt;
 };

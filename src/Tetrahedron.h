@@ -13,7 +13,7 @@ enum Material { LINEAR, NEOHOOKEAN, STVK, COROTATED_LINEAR };
 class Tetrahedron
 {
 public:
-	Tetrahedron(double _young, double _poisson, Material _material);
+	Tetrahedron(double _young, double _poisson, Material _material, std::vector<std::shared_ptr<Node>> _nodes);
 	virtual ~Tetrahedron();
 
 	void step(double h, const Eigen::Vector3d &grav);
@@ -21,15 +21,19 @@ public:
 	void tare();
 	void reset();
 	void precomputation();
-	Eigen::Matrix3d computeDm(std::vector<std::shared_ptr<Node>> nodes);
-
+	Eigen::Matrix3d computePKStress(Eigen::Matrix3d F, Material mt, double mu, double lambda);
+	Eigen::Matrix3d computePKStressDerivative(Eigen::Matrix3d F, Eigen::Matrix3d dF, Material mt, double mu, double lambda);
 	void computeElasticForces();
 	void computeForceDifferentials();
+	std::vector<std::shared_ptr<Node>> nodes;	// i, j, k, l
 
 private:
-	std::vector<std::shared_ptr<Node>> nodes;	// i, j, k, l
+	
 	double young;
 	double poisson;
+	// Lame coefficients
+	double mu;
+	double lambda;
 	double mass;
 	Material material;
 

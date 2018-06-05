@@ -14,6 +14,7 @@
 #include "MatrixStack.h"
 
 using namespace std;
+using namespace Eigen;
 
 Node::Node() :
 	r(1.0),
@@ -56,6 +57,18 @@ void Node::reset()
 
 void Node::clearForce() {
 	this->f.setZero();
+}
+
+void Node::clearForceDifferential() {
+	this->df.setZero();
+}
+
+void Node::addForce(Vector3d force) {
+	this->f += force;
+}
+
+void Node::addForceDifferential(Vector3d dforce) {
+	this->df += dforce;
 }
 
 void Node::draw(shared_ptr<MatrixStack> MV, const shared_ptr<Program> prog) const
