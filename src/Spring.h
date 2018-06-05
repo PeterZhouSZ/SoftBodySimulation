@@ -4,16 +4,16 @@
 
 #include <memory>
 
-class Particle;
+class Node;
 
 class Spring
 {
 public:
-	Spring(std::shared_ptr<Particle> p0, std::shared_ptr<Particle> p1);
+	Spring(std::shared_ptr<Node> p0, std::shared_ptr<Node> p1);
 	virtual ~Spring();
 	
-	std::shared_ptr<Particle> p0;
-	std::shared_ptr<Particle> p1;
+	std::shared_ptr<Node> p0;
+	std::shared_ptr<Node> p1;
 	double E;
 	double L;
 };

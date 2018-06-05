@@ -8,14 +8,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "Particle.h"
+#include "Node.h"
 #include "Shape.h"
 #include "Program.h"
 #include "MatrixStack.h"
 
 using namespace std;
 
-Particle::Particle() :
+Node::Node() :
 	r(1.0),
 	m(1.0),
 	i(-1),
@@ -26,7 +26,7 @@ Particle::Particle() :
 	
 }
 
-Particle::Particle(const shared_ptr<Shape> s) :
+Node::Node(const shared_ptr<Shape> s) :
 	r(1.0),
 	m(1.0),
 	i(-1),
@@ -38,23 +38,27 @@ Particle::Particle(const shared_ptr<Shape> s) :
 	
 }
 
-Particle::~Particle()
+Node::~Node()
 {
 }
 
-void Particle::tare()
+void Node::tare()
 {
 	x0 = x;
 	v0 = v;
 }
 
-void Particle::reset()
+void Node::reset()
 {
 	x = x0;
 	v = v0;
 }
 
-void Particle::draw(shared_ptr<MatrixStack> MV, const shared_ptr<Program> prog) const
+void Node::clearForce() {
+	this->f.setZero();
+}
+
+void Node::draw(shared_ptr<MatrixStack> MV, const shared_ptr<Program> prog) const
 {
 	if(sphere) {
 		MV->pushMatrix();

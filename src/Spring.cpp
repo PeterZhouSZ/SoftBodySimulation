@@ -1,10 +1,10 @@
 #include "Spring.h"
-#include "Particle.h"
+#include "Node.h"
 
 using namespace std;
 using namespace Eigen;
 
-Spring::Spring(shared_ptr<Particle> p0, shared_ptr<Particle> p1) :
+Spring::Spring(shared_ptr<Node> p0, shared_ptr<Node> p1) :
 	E(1.0)
 {
 	assert(p0);

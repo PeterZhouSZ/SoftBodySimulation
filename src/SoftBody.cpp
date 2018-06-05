@@ -25,6 +25,9 @@ using namespace Eigen;
 typedef Eigen::Triplet<double> T;
 
 SoftBody::SoftBody() {
+	tetgenio input_mesh, output_mesh;
+	input_mesh.load_ply("dodecahedron");
+	tetrahedralize("pqz", &input_mesh, &output_mesh);
 
 }
 

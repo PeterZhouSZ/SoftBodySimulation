@@ -9,11 +9,11 @@
 #define EIGEN_DONT_ALIGN_STATICALLY
 #include <Eigen/Dense>
 
-class Cloth;
-class Particle;
+class Node;
 class MatrixStack;
 class Program;
 class Shape;
+class Solver;
 
 class Scene
 {
@@ -39,8 +39,7 @@ private:
 	Eigen::Vector3d grav;
 	
 	std::shared_ptr<Shape> sphereShape;
-	std::shared_ptr<Cloth> cloth;
-	std::vector< std::shared_ptr<Particle> > spheres;
+	std::vector< std::shared_ptr<Node> > spheres;
 };
 
 #endif
