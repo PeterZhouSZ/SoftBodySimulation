@@ -14,6 +14,8 @@ class Program;
 class Tetrahedron;
 class TriFace;
 
+#include "Tetrahedron.h"
+
 class SoftBody
 {
 public:

@@ -25,7 +25,7 @@ void Tetrahedron::step(double h, const Eigen::Vector3d &grav) {
 void Tetrahedron::precomputation() {
 
 	assert(nodes.size() == 4);
-	for (int i = 0; i < nodes.size(); i++) {
+	for (int i = 0; i < nodes.size() - 1; i++) {
 		this->Dm.col(i) = nodes[i]->x0 - nodes[3]->x0;
 	}
 	this->Bm = this->Dm.inverse();
@@ -46,7 +46,6 @@ void Tetrahedron::computeElasticForces() {
 		nodes[i]->addForce(H.col(i));
 		nodes[3]->addForce(-H.col(i));
 	}
-	
 }
 
 Matrix3d Tetrahedron::computePKStress(Matrix3d F, Material mt, double mu, double lambda) {
@@ -58,39 +57,54 @@ Matrix3d Tetrahedron::computePKStress(Matrix3d F, Material mt, double mu, double
 	
 	switch (mt)
 	{
-	case LINEAR:
-		E = 0.5 * (F + F.transpose()) - I;
-		//psi = mu * E.norm() * E.norm() + 1.0 / 2.0 * lambda * E.trace() * E.trace();
-		P = 2.0 * mu * E + lambda * E.trace() * I;
-		break;
-	case NEOHOOKEAN:
-		double I1 = (F.transpose() * F).trace();
-		double I2 = ((F.transpose() * F) *  (F.transpose() * F)).trace();
-		double I3 = (F.transpose() * F).determinant();
-		double J = sqrt(I3);
-		//psi = 1.0 / 2.0 * mu *(I1 - 3.0) - mu * log(J) + 1.0 / 2.0 * lambda * log(J)*log(J);
-		P = mu * (F - F.inverse().transpose()) + lambda * log(J)*(F.inverse().transpose());
-		break;
-	case STVK:
-		E = 0.5 * (F.transpose() * F - I);
-		//psi = mu * E.norm()*E.norm() + 1.0 / 2.0 * lambda * E.trace() * E.trace();
-		P = F * (2.0 * mu * E + lambda * E.trace() * I);
-		break;
-	case COROTATED_LINEAR:
-		// Polar decomposition
-		Matrix3d A = F.adjoint() * F;
-		SelfAdjointEigenSolver<Matrix3d> es(A);
-		Matrix3d S = es.operatorSqrt();
-		Matrix3d R = F * S.inverse();
+		case LINEAR:
+		{
+			E = 0.5 * (F + F.transpose()) - I;
+			//psi = mu * E.norm() * E.norm() + 1.0 / 2.0 * lambda * E.trace() * E.trace();
+			P = 2.0 * mu * E + lambda * E.trace() * I;
+			break;
+		}
+		
+		case NEOHOOKEAN: 
+		{
+			double I1 = (F.transpose() * F).trace();
+			double I2 = ((F.transpose() * F) *  (F.transpose() * F)).trace();
+			double I3 = (F.transpose() * F).determinant();
+			double J = sqrt(I3);
+			//psi = 1.0 / 2.0 * mu *(I1 - 3.0) - mu * log(J) + 1.0 / 2.0 * lambda * log(J)*log(J);
+			P = mu * (F - F.inverse().transpose()) + lambda * log(J)*(F.inverse().transpose());
+			break;
+		}
+		
+		case STVK: 
+		{
+			E = 0.5 * (F.transpose() * F - I);
+			//psi = mu * E.norm()*E.norm() + 1.0 / 2.0 * lambda * E.trace() * E.trace();
+			P = F * (2.0 * mu * E + lambda * E.trace() * I);
+			break;
+		}
+		
+		case COROTATED_LINEAR: 
+		{
+			// Polar decomposition
+			Matrix3d A = F.adjoint() * F;
+			SelfAdjointEigenSolver<Matrix3d> es(A);
+			Matrix3d S = es.operatorSqrt();
+			Matrix3d R = F * S.inverse();
 
-		E = S - I;
-		//psi = mu * E.norm() * E.norm() + 1.0 / 2.0 * lambda * E.trace() * E.trace();
-		//P = R * (2.0 * mu * E + lambda * E.trace() * I);
-		P = 2.0 * mu * (F - R) + lambda * (R.transpose() * F - I).trace() * R;
-		break;
-	default:
-		break;
+			E = S - I;
+			//psi = mu * E.norm() * E.norm() + 1.0 / 2.0 * lambda * E.trace() * E.trace();
+			//P = R * (2.0 * mu * E + lambda * E.trace() * I);
+			P = 2.0 * mu * (F - R) + lambda * (R.transpose() * F - I).trace() * R;
+			break; 
+		}
+
+		default: 
+		{
+			break;
+		}	
 	}
+
 	return P;
 }
 
@@ -150,6 +164,7 @@ Matrix3d Tetrahedron::computePKStressDerivative(Matrix3d F, Matrix3d dF, Materia
 	default:
 		break;
 	}
+
 	return dP;
 }
 

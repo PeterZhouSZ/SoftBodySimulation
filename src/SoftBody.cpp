@@ -26,7 +26,6 @@ using namespace Eigen;
 typedef Eigen::Triplet<double> T;
 
 SoftBody::SoftBody() {
-
 }
 
 SoftBody::SoftBody(double _young, double _poisson, Material _material):
@@ -74,7 +73,6 @@ mt(_material)
 		for (int ii = 0; ii < 4; ii++) {
 			tet_nodes.push_back(nodes[output_mesh.tetrahedronlist[4 * i + ii]]);
 		}
-
 		auto tet = make_shared<Tetrahedron>(young, poisson, mt, tet_nodes);
 		tets.push_back(tet);	
 	}

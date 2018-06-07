@@ -6,6 +6,7 @@
 #include "SoftBody.h"
 #include "Program.h"
 #include "Solver.h"
+#include "Tetrahedron.h"
 
 using namespace std;
 using namespace Eigen;
@@ -33,50 +34,59 @@ void Scene::load(const string &RESOURCE_DIR)
 	double stiffness = 1e2;
 	Vector2d damping(0.0, 1.0);
 
-
-	sphereShape = make_shared<Shape>();
-	sphereShape->loadMesh(RESOURCE_DIR + "sphere2.obj");
+	auto softbody = make_shared<SoftBody>(1e4, 0.4, STVK);
+	softbodies.push_back(softbody);
+	//sphereShape = make_shared<Shape>();
+	//sphereShape->loadMesh(RESOURCE_DIR + "sphere2.obj");
 	
-	auto sphere = make_shared<Node>(sphereShape);
-	spheres.push_back(sphere);
-	sphere->r = 0.1;
-	sphere->x = Vector3d(0.0, 0.2, 0.0);
+	//auto sphere = make_shared<Node>(sphereShape);
+	//spheres.push_back(sphere);
+	//sphere->r = 0.1;
+	//sphere->x = Vector3d(0.0, 0.2, 0.0);
 }
 
 void Scene::init()
 {
-	sphereShape->init();
-	
+	//sphereShape->init();
+	for (int i = 0; i < (int)softbodies.size(); ++i) {
+		softbodies[i]->init();
+	}
 }
 
 void Scene::tare()
 {
-	for(int i = 0; i < (int)spheres.size(); ++i) {
+	/*for(int i = 0; i < (int)spheres.size(); ++i) {
 		spheres[i]->tare();
-	}
+	}*/
 	
 }
 
 void Scene::reset()
 {
-	t = 0.0;
+	/*t = 0.0;
 	for(int i = 0; i < (int)spheres.size(); ++i) {
 		spheres[i]->reset();
-	}
+	}*/
 	
 }
 
 void Scene::step()
 {
 	t += h;
-	
+	for (int i = 0; i < (int)softbodies.size(); ++i) {
+		softbodies[i]->step(h, grav);
+	}
 	
 }
 
 void Scene::draw(shared_ptr<MatrixStack> MV, const shared_ptr<Program> prog) const
 {
 	glUniform3fv(prog->getUniform("kdFront"), 1, Vector3f(1.0, 1.0, 1.0).data());
-	for(int i = 0; i < (int)spheres.size(); ++i) {
-		//spheres[i]->draw(MV, prog);
+	//for(int i = 0; i < (int)spheres.size(); ++i) {
+	//	//spheres[i]->draw(MV, prog);
+	//}
+	for (int i = 0; i < (int)softbodies.size(); ++i) {
+		softbodies[i]->draw(MV, prog);
 	}
+
 }
