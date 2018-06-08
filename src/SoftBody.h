@@ -29,6 +29,14 @@ public:
 	void reset();
 	void draw(std::shared_ptr<MatrixStack> MV, const std::shared_ptr<Program> p) const;
 	void updatePosNor();
+
+	int getNumNodes() const { return nodes.size(); }
+	int getNumTets() const { return tets.size(); }
+	int getNumTrifaces() const { return trifaces.size(); }
+	std::vector<std::shared_ptr<Tetrahedron> > getTets() const { return tets; };
+	std::vector<std::shared_ptr<TriFace> > getTrifaces() const { return trifaces; }
+	std::vector<std::shared_ptr<Node> > getNodes() const { return nodes; }
+
 private:
 	std::vector<std::shared_ptr<Node> > nodes;
 	std::vector<std::shared_ptr<TriFace> > trifaces;

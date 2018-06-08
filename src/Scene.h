@@ -39,6 +39,7 @@ private:
 	double h;
 	Eigen::Vector3d grav;
 	std::vector<std::shared_ptr<SoftBody> > softbodies;
+	std::shared_ptr<Solver> solver;
 	//std::shared_ptr<Shape> sphereShape;
 	//std::vector< std::shared_ptr<Node> > spheres;
 };

@@ -13,7 +13,7 @@ enum Material { LINEAR, NEOHOOKEAN, STVK, COROTATED_LINEAR };
 class Tetrahedron
 {
 public:
-	Tetrahedron(double _young, double _poisson, Material _material, std::vector<std::shared_ptr<Node>> _nodes);
+	Tetrahedron(double _young, double _poisson, double _density, Material _material, std::vector<std::shared_ptr<Node>> _nodes);
 	virtual ~Tetrahedron();
 
 	void step(double h, const Eigen::Vector3d &grav);
@@ -35,6 +35,7 @@ private:
 	double mu;
 	double lambda;
 	double mass;
+	double density;
 	Material material;
 
 	// precomputed

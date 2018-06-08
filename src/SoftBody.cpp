@@ -39,6 +39,7 @@ mt(_material)
 	
 	nFacets = output_mesh.numberoffacets;
 	double r = 0.02;
+	double density = 1.0;
 
 	// Create Nodes
 	for (int i = 0; i < output_mesh.numberofpoints; i++) {
@@ -73,7 +74,7 @@ mt(_material)
 		for (int ii = 0; ii < 4; ii++) {
 			tet_nodes.push_back(nodes[output_mesh.tetrahedronlist[4 * i + ii]]);
 		}
-		auto tet = make_shared<Tetrahedron>(young, poisson, mt, tet_nodes);
+		auto tet = make_shared<Tetrahedron>(young, poisson, density, mt, tet_nodes);
 		tets.push_back(tet);	
 	}
 
@@ -96,7 +97,7 @@ mt(_material)
 }
 
 void SoftBody::step(double h, const Eigen::Vector3d &grav) {
-
+	updatePosNor();
 
 }
 
@@ -182,8 +183,6 @@ void SoftBody::draw(std::shared_ptr<MatrixStack> MV, const std::shared_ptr<Progr
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	MV->popMatrix();
-
-
 }
 
 SoftBody::~SoftBody() {

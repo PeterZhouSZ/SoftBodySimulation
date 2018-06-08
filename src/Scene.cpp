@@ -13,7 +13,7 @@ using namespace Eigen;
 
 Scene::Scene() :
 	t(0.0),
-	h(1e-2),
+	h(1e-3),
 	grav(0.0, 0.0, 0.0)
 {
 }
@@ -34,15 +34,9 @@ void Scene::load(const string &RESOURCE_DIR)
 	double stiffness = 1e2;
 	Vector2d damping(0.0, 1.0);
 
-	auto softbody = make_shared<SoftBody>(1e4, 0.4, STVK);
+	auto softbody = make_shared<SoftBody>(1e2, 0.4, STVK);
 	softbodies.push_back(softbody);
-	//sphereShape = make_shared<Shape>();
-	//sphereShape->loadMesh(RESOURCE_DIR + "sphere2.obj");
-	
-	//auto sphere = make_shared<Node>(sphereShape);
-	//spheres.push_back(sphere);
-	//sphere->r = 0.1;
-	//sphere->x = Vector3d(0.0, 0.2, 0.0);
+	solver = make_shared<Solver>(softbodies, SYMPLECTIC);
 }
 
 void Scene::init()
@@ -73,6 +67,8 @@ void Scene::reset()
 void Scene::step()
 {
 	t += h;
+	solver->step(h);
+
 	for (int i = 0; i < (int)softbodies.size(); ++i) {
 		softbodies[i]->step(h, grav);
 	}

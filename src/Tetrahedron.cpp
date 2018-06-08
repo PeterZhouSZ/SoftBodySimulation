@@ -4,9 +4,10 @@
 using namespace Eigen;
 using namespace std;
 
-Tetrahedron::Tetrahedron(double _young, double _poisson, Material _material, vector<shared_ptr<Node>> _nodes):
+Tetrahedron::Tetrahedron(double _young, double _poisson, double _density, Material _material, vector<shared_ptr<Node>> _nodes):
 young(_young),
 poisson(_poisson),
+density(_density),
 material(_material),
 nodes(_nodes)
 {
@@ -30,11 +31,17 @@ void Tetrahedron::precomputation() {
 	}
 	this->Bm = this->Dm.inverse();
 	this->W = 1.0 / 6.0 * Dm.determinant();
+	this->mass = this->W * this->density;
+
+	// Distribute 1/4 mass to each node
+	for (int i = 0; i < nodes.size(); i++) {
+		nodes[i]->m += this->mass * 0.25;
+	}
 }
 
 void Tetrahedron::computeElasticForces() {
 	assert(nodes.size() == 4);
-	for (int i = 0; i < nodes.size(); i++) {
+	for (int i = 0; i < nodes.size() - 1; i++) {
 		this->Ds.col(i) = nodes[i]->x - nodes[3]->x;
 	}
 

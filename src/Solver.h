@@ -15,11 +15,9 @@ public:
 	Solver(std::vector< std::shared_ptr<SoftBody> > _softbodies, Integrator _time_integrator);
 	virtual ~Solver();
 	void step(double h);
+	void reset();
 	
 	Integrator time_integrator;
-
-	double m;
-	double n;
 
 private:
 	std::vector< std::shared_ptr<SoftBody> > softbodies;
@@ -29,8 +27,7 @@ private:
 	Eigen::VectorXd x;
 	Eigen::VectorXd b;
 	Eigen::VectorXd f;
-	bool isReduced;
-
-
+	Eigen::VectorXd v;
+	Eigen::Vector3d grav;
 };
 
