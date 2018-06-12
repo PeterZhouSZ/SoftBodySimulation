@@ -16,14 +16,15 @@
 using namespace std;
 using namespace Eigen;
 
-Solver::Solver(vector< shared_ptr<SoftBody> > _softbodies, Integrator _time_integrator):
-	grav(0.0, -9.8, 0.0)
+Solver::Solver(vector< shared_ptr<SoftBody> > _softbodies, Integrator _time_integrator, Vector2d _damping):
+	grav(0.0, -9.8, 0.0), damping(_damping)
 {
 	this->softbodies = _softbodies;
 	this->time_integrator = _time_integrator;
 	
 	int nVerts = 3 * softbodies[0]->getNumNodes();
 	A.resize(nVerts, nVerts);
+	K.resize(nVerts, nVerts);
 	M.resize(nVerts, nVerts);
 	v.resize(nVerts);
 	b.resize(nVerts);
@@ -47,20 +48,32 @@ void Solver::step(double h) {
 		v.segment<3>(3 * i) = nodes[i]->v;
 		M.block<3, 3>(3 * i, 3 * i) = I * nodes[i]->m;
 		f.segment<3>(3 * i) = nodes[i]->m * grav;
-
 	}
 
 	for (int i = 0; i < tets.size(); ++i) {
 		tets[i]->computeElasticForces();
+
+		// Assemble K matrix
+		tets[i]->computeForceDifferentials();
+		for (int row = 0; row < 4; row++) {
+			MatrixXd Kb(12, 3);
+			Kb = tets[i]->getStiffness().block<12, 3>(0, 3 * row);
+			
+			for (int jj = 0; jj < 4; ++jj) {
+				int aa = tets[i]->nodes[jj]->i;
+				int bb = tets[i]->nodes[row]->i;
+				K.block<3, 3>(3 * aa, 3 * bb) += Kb.block<3, 3>(3 * jj, 0);
+			}
+		}
 	}
 
 	for (int i = 0; i < nodes.size(); ++i) {
 		f.segment<3>(3 * i) += nodes[i]->f;
 	}
 
-	// TODO: SPARSE; ADD K MATRIX 
+	// TODO: SPARSE;
 	b = M * v + h * f;
-	A = M ;
+	A = M + h * damping(0) * M - h * h * damping(1) * K;
 	
 	x = A.ldlt().solve(b);
 	
@@ -82,6 +95,7 @@ void Solver::step(double h) {
 void Solver::reset() {
 	A.setZero();
 	M.setZero();
+	K.setZero();
 	v.setZero();
 	f.setZero();
 	x.setZero();

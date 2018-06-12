@@ -26,6 +26,7 @@ public:
 	void computeElasticForces();
 	void computeForceDifferentials();
 	std::vector<std::shared_ptr<Node>> nodes;	// i, j, k, l
+	Eigen::MatrixXd getStiffness() const { return this->computePKStress; }
 
 private:
 	
@@ -55,6 +56,5 @@ private:
 	Eigen::Matrix3d dF;		// the differential of the deformation gradient
 	Eigen::Matrix3d dP;		// the stress differential 
 	Eigen::Matrix3d dH;		// the nodal force differential of the first three vertices
-
-
+	Eigen::MatrixXd K;		// 12x12 stiffness matrix
 };

@@ -15,7 +15,8 @@ nodes(_nodes)
 	this->lambda = young * poisson / ((1.0 + poisson) * (1.0 - 2.0 * poisson));
 
 	precomputation();
-
+	K.resize(12, 12);
+	K.setZero();
 }
 
 void Tetrahedron::step(double h, const Eigen::Vector3d &grav) {
@@ -177,22 +178,37 @@ Matrix3d Tetrahedron::computePKStressDerivative(Matrix3d F, Matrix3d dF, Materia
 
 void Tetrahedron::computeForceDifferentials() {
 	assert(nodes.size() == 4);
-	for (int i = 0; i < nodes.size(); i++) {
+	for (int i = 0; i < nodes.size() - 1; i++) {
 		this->Ds.col(i) = nodes[i]->x - nodes[3]->x;
 	}
 
-	//todo dDs
-
 	this->F = Ds * Bm;
-	this->dF = dDs * Bm;
-	this->dP = computePKStressDerivative(F, dF, material, mu, lambda);
-	this->dH = -W *dP *(Bm.transpose());
 
-	for (int i = 0; i < nodes.size() - 1; i++) {
-		nodes[i]->addForceDifferential(dH.col(i));
-		nodes[3]->addForceDifferential(-dH.col(i));
+	MatrixXd dFRow(4, 3);
+	for (int i = 0; i < 3; ++i) {
+		dFRow.row(i) = Bm.row(i);
+		dFRow(3, i) = -Bm(0, i) - Bm(1, i) - Bm(2, i);
 	}
 
+	K.setZero();
+	for (int row = 0; row < 4; ++row) {
+		MatrixXd Kb(12, 3);
+		Kb.setZero();
+		for (int kk = 0; kk < 3; ++kk) {
+			Matrix3d dF;
+			dF.setZero();
+			dF.row(kk) = dFRow.row(row);
+			MatrixXd dP = computePKStressDerivative(F, dF, material, mu, lambda);
+			dH = -W * dP * (Bm.transpose());
+			for (int ii = 0; ii < 3; ii++) {
+				for (int ll = 0; ll < 3; ll++) {
+					Kb(ii * 3 + ll, kk) = dH(ll, ii);
+				}
+				Kb(9 + ii, kk) = -dH(ii, 0) - dH(ii, 1) - dH(ii, 2);
+			}
+		}
+		K.block<12, 3>(0, 3 * row) = Kb;
+	}
 }
 
 

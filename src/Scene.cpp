@@ -31,10 +31,10 @@ void Scene::load(const string &RESOURCE_DIR)
 	int rows = 2;
 	int cols = 2;
 	double mass = 0.1;
-	double stiffness = 1e2;
+	double stiffness = 1e4;
 	Vector2d damping(0.0, 1.0);
 
-	auto softbody = make_shared<SoftBody>(1e2, 0.4, STVK);
+	auto softbody = make_shared<SoftBody>(1e3, 0.4, STVK);
 	softbodies.push_back(softbody);
 	solver = make_shared<Solver>(softbodies, SYMPLECTIC);
 }
