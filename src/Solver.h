@@ -12,7 +12,7 @@ enum Integrator { RKF45, SYMPLECTIC, IMPLICIT };
 class Solver
 {
 public:
-	Solver(std::vector< std::shared_ptr<SoftBody> > _softbodies, Integrator _time_integrator, Eigen::Vector2d _damping);
+	Solver(std::vector< std::shared_ptr<SoftBody> > _softbodies, Integrator _time_integrator, Eigen::Vector2d _damping, Eigen::Vector3d _grav);
 	virtual ~Solver();
 	void step(double h);
 	void reset();

@@ -16,12 +16,9 @@
 using namespace std;
 using namespace Eigen;
 
-Solver::Solver(vector< shared_ptr<SoftBody> > _softbodies, Integrator _time_integrator, Vector2d _damping):
-	grav(0.0, -9.8, 0.0), damping(_damping)
+Solver::Solver(vector< shared_ptr<SoftBody> > _softbodies, Integrator _time_integrator, Vector2d _damping, Vector3d _grav):
+	grav(_grav), damping(_damping), softbodies(_softbodies), time_integrator(_time_integrator)
 {
-	this->softbodies = _softbodies;
-	this->time_integrator = _time_integrator;
-	
 	int nVerts = 3 * softbodies[0]->getNumNodes();
 	A.resize(nVerts, nVerts);
 	K.resize(nVerts, nVerts);
