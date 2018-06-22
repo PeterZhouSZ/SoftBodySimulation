@@ -26,7 +26,7 @@ public:
 	void computeElasticForces();
 	void computeForceDifferentials();
 	std::vector<std::shared_ptr<Node>> nodes;	// i, j, k, l
-	Eigen::MatrixXd getStiffness() const { return this->computePKStress; }
+	Eigen::MatrixXd getStiffness() const { return this->K; }
 
 private:
 	

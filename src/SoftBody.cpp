@@ -34,7 +34,7 @@ poisson(_poisson),
 mt(_material)
 {
 	tetgenio input_mesh, output_mesh;
-	input_mesh.load_ply("dodecahedron");
+	input_mesh.load_ply("bunny1380");
 	tetrahedralize("pqz", &input_mesh, &output_mesh);
 	
 	nFacets = output_mesh.numberoffacets;
@@ -55,7 +55,14 @@ mt(_material)
 		node->v = node->v0;
 		node->m = 0.0;
 		node->i = i;
-		node->fixed = false;
+
+		if (node->x(1) > 1.1) {
+			node->fixed = true;
+		}
+		else {
+			node->fixed = false;
+		}
+		
 	}
 
 	// Create TriFaces
