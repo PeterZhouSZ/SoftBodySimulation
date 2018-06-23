@@ -21,7 +21,7 @@ nodes(_nodes)
 
 void Tetrahedron::step(double h, const Eigen::Vector3d &grav) {
 	computeElasticForces();
-	computeForceDifferentials();
+	//computeForceDifferentials();
 }
 
 void Tetrahedron::precomputation() {
@@ -176,7 +176,7 @@ Matrix3d Tetrahedron::computePKStressDerivative(Matrix3d F, Matrix3d dF, Materia
 	return dP;
 }
 
-void Tetrahedron::computeForceDifferentials() {
+void Tetrahedron::computeForceDifferentials(VectorXd dx, VectorXd& df) {
 	assert(nodes.size() == 4);
 	for (int i = 0; i < nodes.size() - 1; i++) {
 		this->Ds.col(i) = nodes[i]->x - nodes[3]->x;
@@ -184,7 +184,20 @@ void Tetrahedron::computeForceDifferentials() {
 
 	this->F = Ds * Bm;
 
-	MatrixXd dFRow(4, 3);
+	for (int i = 0; i < nodes.size() - 1; i++) {
+		this->dDs.col(i) = dx.segment<3>(3 * nodes[i]->i) - dx.segment<3>(3 * nodes[3]->i);
+	}
+
+	this->dF = dDs * Bm;
+	this->dP = computePKStressDerivative(F, dF, material, mu, lambda);
+	this->dH = -W * dP * (Bm.transpose());
+
+	for (int i = 0; i < nodes.size() - 1; i++) {
+		df.segment<3>(3 * nodes[i]->i) += this->dH.col(i);
+		df.segment<3>(3 * nodes[3]->i) -= this->dH.col(i);
+	}
+
+	/*MatrixXd dFRow(4, 3);
 	for (int i = 0; i < 3; ++i) {
 		dFRow.row(i) = Bm.row(i);
 		dFRow(3, i) = -Bm(0, i) - Bm(1, i) - Bm(2, i);
@@ -208,7 +221,7 @@ void Tetrahedron::computeForceDifferentials() {
 			}
 		}
 		K.block<12, 3>(0, 3 * row) = Kb;
-	}
+	}*/
 }
 
 

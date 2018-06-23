@@ -26,6 +26,7 @@ private:
 	Eigen::SparseMatrix<double> A_sparse;
 	Eigen::MatrixXd A;
 	Eigen::MatrixXd K;
+	Eigen::MatrixXd Dx;
 	Eigen::MatrixXd M;
 	Eigen::MatrixXd J;
 	Eigen::VectorXd x;
@@ -36,5 +37,6 @@ private:
 	Eigen::Vector2d damping;
 	std::vector<T> A_;
 	bool isSparse;
+	int mat_n;
 };
 

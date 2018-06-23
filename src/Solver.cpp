@@ -19,7 +19,11 @@ Solver::Solver(vector< shared_ptr<SoftBody> > _softbodies, Integrator _time_inte
 	grav(_grav), damping(_damping), softbodies(_softbodies), time_integrator(_time_integrator), isSparse(_isSparse)
 {
 	int nVerts = 3 * softbodies[0]->getNumNodes();
+	this->mat_n = nVerts;
+
 	A.resize(nVerts, nVerts);
+	Dx.resize(nVerts, nVerts);
+	Dx.setIdentity();
 	A_sparse.resize(nVerts, nVerts);
 	K.resize(nVerts, nVerts);
 	M.resize(nVerts, nVerts);
@@ -56,11 +60,23 @@ void Solver::step(double h) {
 	}
 
 	for (int i = 0; i < tets.size(); ++i) {
-		tets[i]->computeElasticForces();
-
+		auto tet = tets[i];
+		tet->computeElasticForces();
+		
 		// Assemble K matrix
-		tets[i]->computeForceDifferentials();
-		for (int row = 0; row < 4; row++) {
+		for (int ii = 0; ii < 4; ii++) {
+			auto node = tet->nodes[ii];
+			int id = node->i;
+
+			for (int iii = 0; iii < 3; iii++) {
+				VectorXd df(mat_n);
+				df.setZero();
+ 				tet->computeForceDifferentials(Dx.col(3 * id + iii), df);
+				K.col(3 * id + iii) += df;
+
+			}
+		}
+		/*for (int row = 0; row < 4; row++) {
 			MatrixXd Kb(12, 3);
 			Kb = tets[i]->getStiffness().block<12, 3>(0, 3 * row);
 			
@@ -76,9 +92,8 @@ void Solver::step(double h) {
 						}
 					}
 				}
-
 			}
-		}
+		}*/
 	}
 
 	for (int i = 0; i < nodes.size(); ++i) {

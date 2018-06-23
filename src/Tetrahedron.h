@@ -24,7 +24,7 @@ public:
 	Eigen::Matrix3d computePKStress(Eigen::Matrix3d F, Material mt, double mu, double lambda);
 	Eigen::Matrix3d computePKStressDerivative(Eigen::Matrix3d F, Eigen::Matrix3d dF, Material mt, double mu, double lambda);
 	void computeElasticForces();
-	void computeForceDifferentials();
+	void computeForceDifferentials(Eigen::VectorXd dx, Eigen::VectorXd& df);
 	std::vector<std::shared_ptr<Node>> nodes;	// i, j, k, l
 	Eigen::MatrixXd getStiffness() const { return this->K; }
 

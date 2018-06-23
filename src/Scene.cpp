@@ -31,7 +31,7 @@ void Scene::load(const string &RESOURCE_DIR)
 	double mass = 0.1;
 	double stiffness = 5e1;
 	double possion = 0.35;
-	bool isSparse = true;
+	bool isSparse = false;
 	Vector2d damping(0.9, 0.9);
 
 	auto softbody = make_shared<SoftBody>(stiffness, possion, STVK);
