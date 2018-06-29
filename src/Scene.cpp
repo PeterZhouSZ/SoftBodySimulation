@@ -28,15 +28,16 @@ void Scene::load(const string &RESOURCE_DIR)
 	h = 1e-2;
 	grav << 0.0, -9.8, 0.0;
 	
-	double mass = 0.1;
-	double stiffness = 5e1;
-	double possion = 0.35;
-	bool isSparse = false;
+	double mass = 1;
+	double stiffness = 1e2;
+	double possion = 0.45;
+	bool isSparse = true;
+	bool isMatrixFree = false;
 	Vector2d damping(0.9, 0.9);
 
 	auto softbody = make_shared<SoftBody>(stiffness, possion, STVK);
 	softbodies.push_back(softbody);
-	solver = make_shared<Solver>(softbodies, SYMPLECTIC, damping, grav, isSparse);
+	solver = make_shared<Solver>(softbodies, SYMPLECTIC, damping, grav, isSparse, isMatrixFree);
 }
 
 void Scene::init()

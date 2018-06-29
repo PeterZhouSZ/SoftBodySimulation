@@ -34,7 +34,7 @@ poisson(_poisson),
 mt(_material)
 {
 	tetgenio input_mesh, output_mesh;
-	input_mesh.load_ply("bunny1380");
+	input_mesh.load_ply("bunny100");
 	tetrahedralize("pqz", &input_mesh, &output_mesh);
 	
 	nFacets = output_mesh.numberoffacets;
@@ -56,7 +56,7 @@ mt(_material)
 		node->m = 0.0;
 		node->i = i;
 
-		if (node->x(1) > 1.1) {
+		if (node->x(1) > 5.0) {
 			node->fixed = true;
 		}
 		else {

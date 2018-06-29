@@ -3,7 +3,7 @@
 #include "SoftBody.h"
 #include "Node.h"
 #include "Tetrahedron.h"
-#include "MatrixFree.h"
+//#include "MatrixFree.h"
 #include "QuadProgMosek.h"
 
 #include <iostream>
@@ -107,11 +107,11 @@ void Solver::step(double h) {
 
 
 	if (isMatrixFree) {
-		MatrixReplacement A_rp(softbodies, M);
+		//MatrixReplacement A_rp(softbodies, M);
 		//Todo getcol 
 
 
-		ConjugateGradient<MatrixReplacement, Lower | Upper, IdentityPreconditioner> cg;
+		/*ConjugateGradient<MatrixReplacement, Lower | Upper, IdentityPreconditioner> cg;
 		cg.compute(A_rp);
 		x = cg.solve(b);
 	}else if(isSparse){
@@ -120,7 +120,7 @@ void Solver::step(double h) {
 		cg.setMaxIterations(25);
 		cg.setTolerance(1e-3);
 		cg.compute(A_sparse);
-		x = cg.solveWithGuess(b, v);
+		x = cg.solveWithGuess(b, v);*/
 	}else {
 		A = M + h * damping(0) * M - h * h * damping(1) * K;
 		x = A.ldlt().solve(b);
@@ -144,22 +144,23 @@ void Solver::step(double h) {
 			nodes[i]->x = nodes[i]->x0;
 		}
 		else {
-			nodes[i]->x += nodes[i]->v * h;
+			 Vector3d x_new = nodes[i]->x + nodes[i]->v * h;
 
 			/// TODO: USE MOSEK LATER
-			if (nodes[i]->x(1) < -6.0 && nodes[i]->v(1) < -0.00001) {
+			if (x_new(1) < 0.0 && nodes[i]->v(1) < -0.00001) {
+				
 				// Collision detection
 				isCollision = true;
 				col_ids.push_back(i);
-				//nodes[i]->v(1) = 0.0;
-				//nodes[i]->x(1) = -6.0;
 			}
 		}		
 	}
 	Vector3d floor;
-	floor << 0.0, 1.0, 0.0;
+	floor << 0.0, -1.0, 0.0;
 
 	if (isCollision && isSparse) {
+		//cout << "col!" << endl;
+
 		shared_ptr<QuadProgMosek> program_ = make_shared <QuadProgMosek>();
 		program_->setParamInt(MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_INTPNT);
 		program_->setParamInt(MSK_IPAR_LOG, 10);
@@ -179,8 +180,8 @@ void Solver::step(double h) {
 		xu *= inf;
 
 		VectorXd in_vec(col_ids.size());
-		in_vec.setZero();
-		MatrixXd G(3 * col_ids.size()), mat_n);
+		in_vec.setOnes();
+		MatrixXd G(3 * col_ids.size(), mat_n);
 		G.setZero();
 		for (int i = 0; i < col_ids.size(); i++) {
 			int id = col_ids[i];
@@ -189,7 +190,7 @@ void Solver::step(double h) {
 			}		
 		}
 
-		program_->setNumberOfInequalities(col_ids.size());
+		program_->setNumberOfInequalities(3 * col_ids.size());
 		program_->setInequalityMatrix(G.sparseView());
 		program_->setInequalityVector(in_vec);
 
@@ -219,7 +220,6 @@ void Solver::step(double h) {
 		}
 		else {
 			nodes[i]->x += nodes[i]->v * h;
-			}
 		}
 	}
 
