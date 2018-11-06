@@ -16,6 +16,8 @@ Scene::Scene() :
 	h(1e-3),
 	grav(0.0, 0.0, 0.0)
 {
+	isElasticForce = true;
+	isGravity = true;
 }
 
 Scene::~Scene()
@@ -29,15 +31,19 @@ void Scene::load(const string &RESOURCE_DIR)
 	grav << 0.0, -9.8, 0.0;
 	
 	double mass = 1;
-	double stiffness = 1e2;
-	double possion = 0.45;
-	bool isSparse = true;
+	double stiffness = 1.0e2;
+	double possion = 0.35;
+	bool isSparse = false;
 	bool isMatrixFree = false;
-	Vector2d damping(0.9, 0.9);
-
+	Vector2d damping(0.0, -0.1);
+	double y_floor =- 0.0;
+	Vector3d nor_floor;
+	nor_floor << 0.0, -1.0, 0.0;
 	auto softbody = make_shared<SoftBody>(stiffness, possion, STVK);
 	softbodies.push_back(softbody);
 	solver = make_shared<Solver>(softbodies, SYMPLECTIC, damping, grav, isSparse, isMatrixFree);
+	solver->y_floor = y_floor;
+	solver->nor_floor = nor_floor;
 }
 
 void Scene::init()
@@ -56,9 +62,23 @@ void Scene::reset()
 {
 }
 
+void Scene::toggleElasticForce() {
+	isElasticForce = !isElasticForce;
+	if (isElasticForce) {
+		cout << "Elastic Force is On" << endl;
+	}
+	else {
+		cout << "Elastic Force is Off " << endl;
+	}
+}
+
 void Scene::step()
 {
 	t += h;
+
+	solver->isElasticForce = isElasticForce;
+	solver->isGravity = isGravity;
+
 	solver->step(h);
 
 	for (int i = 0; i < (int)softbodies.size(); ++i) {

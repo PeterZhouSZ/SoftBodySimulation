@@ -4,8 +4,9 @@
 #include "Node.h"
 #include "Tetrahedron.h"
 //#include "MatrixFree.h"
-#include "QuadProgMosek.h"
 
+#include "QuadProgMosek.h"
+#include "MatlabDebug.h"
 #include <iostream>
 #include <iomanip>
 
@@ -46,12 +47,11 @@ void Solver::step(double h) {
 	Matrix3d I; 
 	I.setIdentity();
 
-	for (int i = 0; i < nodes.size(); ++i) {
+	for (int i = 0; i < (int)nodes.size(); ++i) {
 		nodes[i]->clearForce();
 		
 		v.segment<3>(3 * i) = nodes[i]->v;
 		M.block<3, 3>(3 * i, 3 * i) = I * nodes[i]->m;
-		f.segment<3>(3 * i) = nodes[i]->m * grav;
 
 		//
 		if (isSparse) {
@@ -62,45 +62,49 @@ void Solver::step(double h) {
 		
 	}
 
-	for (int i = 0; i < tets.size(); ++i) {
-		auto tet = tets[i];
-		tet->computeElasticForces();
-		
-		// Assemble K matrix
-		for (int ii = 0; ii < 4; ii++) {
-			auto node = tet->nodes[ii];
-			int id = node->i;
-
-			for (int iii = 0; iii < 3; iii++) {
-				VectorXd df(mat_n);
-				df.setZero();
- 				tet->computeForceDifferentials(Dx.col(3 * id + iii), df);
-				K.col(3 * id + iii) += df;
-
-			}
-		}
-		/*for (int row = 0; row < 4; row++) {
-			MatrixXd Kb(12, 3);
-			Kb = tets[i]->getStiffness().block<12, 3>(0, 3 * row);
-			
-			for (int jj = 0; jj < 4; ++jj) {
-				int aa = tets[i]->nodes[jj]->i;
-				int bb = tets[i]->nodes[row]->i;
-				K.block<3, 3>(3 * aa, 3 * bb) += Kb.block<3, 3>(3 * jj, 0);
-
-				if (isSparse) {
-					for (int irow = 0; irow < 3; irow++) {
-						for (int icol = 0; icol < 3; icol++) {
-							A_.push_back(T(3 * aa + irow, 3 * bb + icol, - h * h * damping(1) * Kb(3 * jj + irow, icol)));
-						}
-					}
-				}
-			}
-		}*/
+	if (isGravity) {
+		softbodies[0]->computeGravityForce(grav, f);
 	}
 
-	for (int i = 0; i < nodes.size(); ++i) {
-		f.segment<3>(3 * i) += nodes[i]->f;
+	if (isElasticForce) {
+		softbodies[0]->computeElasticForce(f);
+		softbodies[0]->computeStiffness(K);
+		//for (int i = 0; i < (int)tets.size(); ++i) {
+		//	auto tet = tets[i];
+		//	tet->computeElasticForces();
+		//
+		//	// Assemble K matrix
+		//	for (int ii = 0; ii < 4; ii++) {
+		//		auto node = tet->nodes[ii];
+		//		int id = node->i;
+
+		//		for (int iii = 0; iii < 3; iii++) {
+		//			VectorXd df(mat_n);
+		//			df.setZero();
+ 	//				tet->computeForceDifferentials(Dx.col(3 * id + iii), df);
+		//			K.col(3 * id + iii) += df;
+
+		//		}
+		//	}
+		//	/*for (int row = 0; row < 4; row++) {
+		//		MatrixXd Kb(12, 3);
+		//		Kb = tets[i]->getStiffness().block<12, 3>(0, 3 * row);
+		//	
+		//		for (int jj = 0; jj < 4; ++jj) {
+		//			int aa = tets[i]->nodes[jj]->i;
+		//			int bb = tets[i]->nodes[row]->i;
+		//			K.block<3, 3>(3 * aa, 3 * bb) += Kb.block<3, 3>(3 * jj, 0);
+
+		//			if (isSparse) {
+		//				for (int irow = 0; irow < 3; irow++) {
+		//					for (int icol = 0; icol < 3; icol++) {
+		//						A_.push_back(T(3 * aa + irow, 3 * bb + icol, - h * h * damping(1) * Kb(3 * jj + irow, icol)));
+		//					}
+		//				}
+		//			}
+		//		}
+		//	}*/
+		//}
 	}
 
 	b = M * v + h * f;
@@ -113,21 +117,26 @@ void Solver::step(double h) {
 
 		/*ConjugateGradient<MatrixReplacement, Lower | Upper, IdentityPreconditioner> cg;
 		cg.compute(A_rp);
-		x = cg.solve(b);
+		x = cg.solve(b);*/
 	}else if(isSparse){
 		A_sparse.setFromTriplets(A_.begin(), A_.end());
 		ConjugateGradient< SparseMatrix<double> > cg;
 		cg.setMaxIterations(25);
 		cg.setTolerance(1e-3);
 		cg.compute(A_sparse);
-		x = cg.solveWithGuess(b, v);*/
+		x = cg.solveWithGuess(b, v);
+
 	}else {
-		A = M + h * damping(0) * M - h * h * damping(1) * K;
+		A = M + h * damping(0) * M + h * h * damping(1) * K;
 		x = A.ldlt().solve(b);
+		/*mat_to_file(A, "A");
+		mat_to_file(K, "K");
+		vec_to_file(b, "b");
+		vec_to_file(x, "x");*/
 	}
 	
 	
-	for (int i = 0; i < nodes.size(); ++i) {
+	for (int i = 0; i < (int)nodes.size(); ++i) {
 		if (nodes[i]->fixed) {
 			nodes[i]->v.setZero();
 		}
@@ -137,29 +146,35 @@ void Solver::step(double h) {
 	}
 
 	bool isCollision = false;
+	int numCols = 0;
 	vector<int> col_ids;
-	for (int i = 0; i < nodes.size(); ++i) {
+	for (int i = 0; i < (int)nodes.size(); ++i) {
 
 		if (nodes[i]->fixed) {
 			nodes[i]->x = nodes[i]->x0;
 		}
 		else {
 			 Vector3d x_new = nodes[i]->x + nodes[i]->v * h;
-
-			/// TODO: USE MOSEK LATER
-			if (x_new(1) < 0.0 && nodes[i]->v(1) < -0.00001) {
+	
+			if (x_new(1) < y_floor && nodes[i]->v(1) < -0.0001) {
 				
 				// Collision detection
 				isCollision = true;
+
 				col_ids.push_back(i);
+				for (int ii = 0; ii < 3; ii++) {
+					G_.push_back(T(numCols, 3 * i + ii, floor(ii)));
+				}
+				numCols++;
 			}
 		}		
 	}
-	Vector3d floor;
-	floor << 0.0, -1.0, 0.0;
+	
 
-	if (isCollision && isSparse) {
-		//cout << "col!" << endl;
+	if (isCollision) {
+		cout << "col!" << endl;
+		G_sparse.resize(col_ids.size(), mat_n);
+		G_sparse.setFromTriplets(G_.begin(), G_.end());
 
 		shared_ptr<QuadProgMosek> program_ = make_shared <QuadProgMosek>();
 		program_->setParamInt(MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_INTPNT);
@@ -171,8 +186,21 @@ void Solver::step(double h) {
 		program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_NEAR_REL, 1e3);
 		program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_PFEAS, 1e-8);
 		program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_REL_GAP, 1e-8);
+
 		program_->setNumberOfVariables(mat_n);
 
+		if (isSparse) {
+			program_->setObjectiveMatrix(A_sparse);
+
+		}
+		else
+		{
+			program_->setObjectiveMatrix(A.sparseView());
+			
+		}
+
+		program_->setObjectiveVector(b);
+		
 		VectorXd xl(mat_n), xu(mat_n);
 		xl.setOnes();
 		xu.setOnes();
@@ -181,30 +209,35 @@ void Solver::step(double h) {
 
 		VectorXd in_vec(col_ids.size());
 		in_vec.setOnes();
-		MatrixXd G(3 * col_ids.size(), mat_n);
+		in_vec *= 0.0;
+		MatrixXd G(col_ids.size(), mat_n);
 		G.setZero();
 		for (int i = 0; i < col_ids.size(); i++) {
 			int id = col_ids[i];
 			for (int ii = 0; ii < 3; ii++) {
-				G(id * 3 + ii, id * 3 + ii) = floor(ii);
+				G(i, id * 3 + ii) = nor_floor(ii);
 			}		
 		}
+		//mat_to_file(G,"G");
 
-		program_->setNumberOfInequalities(3 * col_ids.size());
-		program_->setInequalityMatrix(G.sparseView());
+		program_->setNumberOfInequalities(col_ids.size());
+		if (isSparse) {
+			program_->setInequalityMatrix(G_sparse);
+		}
+		else {
+			program_->setInequalityMatrix(G.sparseView());
+		}
+		
 		program_->setInequalityVector(in_vec);
 
 		program_->setLowerVariableBound(xl);
 		program_->setUpperVariableBound(xu);
-	
-		program_->setObjectiveMatrix(A_sparse);
-		program_->setObjectiveVector(b);
 
 		bool success = program_->solve();
 		x = program_->getPrimalSolution();
 	}
 
-	for (int i = 0; i < nodes.size(); ++i) {
+	for (int i = 0; i < (int)nodes.size(); ++i) {
 		if (nodes[i]->fixed) {
 			nodes[i]->v.setZero();
 		}
@@ -213,7 +246,7 @@ void Solver::step(double h) {
 		}
 	}
 
-	for (int i = 0; i < nodes.size(); ++i) {
+	for (int i = 0; i < (int)nodes.size(); ++i) {
 
 		if (nodes[i]->fixed) {
 			nodes[i]->x = nodes[i]->x0;
@@ -234,7 +267,10 @@ void Solver::reset() {
 	x.setZero();
 	b.setZero();
 	A_.clear();
+	G_.clear();
 	A_sparse.setZero();
+	G_sparse.setZero();
+
 }
 
 Solver::~Solver() {

@@ -29,19 +29,21 @@ public:
 	void tare();
 	void reset();
 	void step();
-	
+	void toggleElasticForce();
 	void draw(std::shared_ptr<MatrixStack> MV, const std::shared_ptr<Program> prog) const;
 	
 	double getTime() const { return t; }
+	std::vector<std::shared_ptr<SoftBody> > softbodies;
+	std::shared_ptr<Solver> solver;
 	
 private:
+	bool isElasticForce;
+	bool isGravity;
 	double t;
 	double h;
 	Eigen::Vector3d grav;
-	std::vector<std::shared_ptr<SoftBody> > softbodies;
-	std::shared_ptr<Solver> solver;
-	//std::shared_ptr<Shape> sphereShape;
-	//std::vector< std::shared_ptr<Node> > spheres;
+	
+
 };
 
 #endif

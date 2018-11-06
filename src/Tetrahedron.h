@@ -6,6 +6,8 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
+#include "MLCommon.h"
+
 class Node;
 enum Material { LINEAR, NEOHOOKEAN, STVK, COROTATED_LINEAR };
 
@@ -21,9 +23,12 @@ public:
 	void tare();
 	void reset();
 	void precomputation();
+	void setStiffness(double young);
+	void setPoisson(double poisson);
+	Eigen::Matrix3d computeDeformationGradient();
 	Eigen::Matrix3d computePKStress(Eigen::Matrix3d F, Material mt, double mu, double lambda);
 	Eigen::Matrix3d computePKStressDerivative(Eigen::Matrix3d F, Eigen::Matrix3d dF, Material mt, double mu, double lambda);
-	void computeElasticForces();
+	void computeElasticForces(Eigen::VectorXd f);
 	void computeForceDifferentials(Eigen::VectorXd dx, Eigen::VectorXd& df);
 	std::vector<std::shared_ptr<Node>> nodes;	// i, j, k, l
 	Eigen::MatrixXd getStiffness() const { return this->K; }
@@ -56,5 +61,5 @@ private:
 	Eigen::Matrix3d dF;		// the differential of the deformation gradient
 	Eigen::Matrix3d dP;		// the stress differential 
 	Eigen::Matrix3d dH;		// the nodal force differential of the first three vertices
-	Eigen::MatrixXd K;		// 12x12 stiffness matrix
+	Matrix12d K;		// 12x12 stiffness matrix
 };

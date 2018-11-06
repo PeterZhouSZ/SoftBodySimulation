@@ -23,6 +23,7 @@
 #include "MatrixStack.h"
 #include "Shape.h"
 #include "Scene.h"
+#include "SoftBody.h"
 
 using namespace std;
 using namespace Eigen;
@@ -51,6 +52,8 @@ static void key_callback(GLFWwindow *window, int key, int scancode, int action, 
 
 static void char_callback(GLFWwindow *window, unsigned int key)
 {
+	double young0, young1, p0, p1;
+
 	keyToggles[key] = !keyToggles[key];
 	switch(key) {
 		case 'h':
@@ -58,6 +61,33 @@ static void char_callback(GLFWwindow *window, unsigned int key)
 			break;
 		case 'r':
 			scene->reset();
+			break;
+		case 'e':
+			scene->toggleElasticForce();
+			break;
+		case 'S':
+			young0 = scene->softbodies[0]->getStiffness();
+			young1 = young0 * 1.1;
+			scene->softbodies[0]->setStiffness(young1);
+			cout << "+++ young: " << young1 << endl;
+			break;
+		case 's':
+			young0 = scene->softbodies[0]->getStiffness();
+			young1 = young0 * 0.9;
+			scene->softbodies[0]->setStiffness(young1);
+			cout << "--- young: " << young1 << endl;
+			break;
+		case 'P':
+			p0 = scene->softbodies[0]->getPoisson();
+			p1 = p0 * 1.1;
+			scene->softbodies[0]->setPoisson(p1);
+			cout << "+++ poisson: " << p1 << endl;
+			break;
+		case 'p':
+			p0 = scene->softbodies[0]->getPoisson();
+			p1 = p0 * 0.9;
+			scene->softbodies[0]->setPoisson(p1);
+			cout << "--- poisson: " << p1 << endl;
 			break;
 	}
 }

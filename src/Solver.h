@@ -24,10 +24,18 @@ public:
 	void reset();
 	
 	Integrator time_integrator;
+	double y_floor;
+	bool isSparse;
+	bool isMatrixFree;
+	bool isGravity;
+	bool isElasticForce;
+	Eigen::Vector3d nor_floor;
 
 private:
+	
 	std::vector< std::shared_ptr<SoftBody> > softbodies;
 	Eigen::SparseMatrix<double> A_sparse;
+	Eigen::SparseMatrix<double> G_sparse;
 	Eigen::MatrixXd A;
 	Eigen::MatrixXd K;
 	Eigen::MatrixXd Dx;
@@ -40,8 +48,8 @@ private:
 	Eigen::Vector3d grav;
 	Eigen::Vector2d damping;
 	std::vector<T> A_;
-	bool isSparse;
-	bool isMatrixFree;
+	std::vector<T> G_;
+	
 	int mat_n;
 };
 

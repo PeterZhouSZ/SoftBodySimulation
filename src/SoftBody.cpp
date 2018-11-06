@@ -55,8 +55,7 @@ mt(_material)
 		node->v = node->v0;
 		node->m = 0.0;
 		node->i = i;
-
-		if (node->x(1) > 5.0) {
+		if (node->x(1) > 111.3) {
 			node->fixed = true;
 		}
 		else {
@@ -101,6 +100,62 @@ mt(_material)
 		eleBuf[3 * i + 1] = 3 * i + 1;
 		eleBuf[3 * i + 2] = 3 * i + 2;
 	}
+}
+
+void SoftBody::setStiffness(double young) {
+	this->young = young;
+	for (int i = 0; i < (int)tets.size(); i++) {
+		auto tet = tets[i];
+		tet->setStiffness(young);
+	}
+
+}
+
+void SoftBody::setPoisson(double poisson) {
+	this->poisson = poisson;
+	for (int i = 0; i < (int)tets.size(); i++) {
+		auto tet = tets[i];
+		tet->setPoisson(poisson);
+	}
+}
+
+void SoftBody::computeGravityForce(Eigen::Vector3d grav, Eigen::VectorXd &f) {
+	for (int i = 0; i < (int)nodes.size(); i++) {
+		double m = nodes[i]->m;
+		f.segment<3>(3 * i) += m * grav;
+	}
+}
+
+void SoftBody::computeElasticForce(Eigen::VectorXd &f) {
+
+	for (int i = 0; i < (int)tets.size(); i++) {
+		auto tet = tets[i];
+		tet->computeElasticForces(f);
+	}
+
+}
+
+void SoftBody::computeStiffness(MatrixXd &K) {
+	VectorXd df(3 * nodes.size());
+	VectorXd Dx = df;
+
+	for (int i = 0; i < (int)tets.size(); i++) {
+		auto tet = tets[i];
+		for (int ii = 0; ii < 4; ii++) {
+			auto node = tet->nodes[ii];
+			int id = node->i;
+
+			for (int iii = 0; iii < 3; iii++) {
+				df.setZero();
+				Dx.setZero();
+				Dx(3 * id + iii) = 1.0;
+				tet->computeForceDifferentials(Dx, df);
+				//K.col(col + iii) += df;
+				K.col(3 * id + iii) += df;
+			}
+		}
+	}
+
 }
 
 void SoftBody::step(double h, const Eigen::Vector3d &grav) {
@@ -157,6 +212,7 @@ void SoftBody::tare() {
 void SoftBody::reset() {
 
 }
+
 
 
 void SoftBody::draw(std::shared_ptr<MatrixStack> MV, const std::shared_ptr<Program> p) const {

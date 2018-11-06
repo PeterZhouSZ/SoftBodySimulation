@@ -23,13 +23,19 @@ public:
 	SoftBody(double _young, double _poisson, Material _material);
 	virtual ~SoftBody();
 
+	double getStiffness() { return this->young; }
+	double getPoisson() { return this->poisson; }
+	void setStiffness(double young);
+	void setPoisson(double poisson);
 	void step(double h, const Eigen::Vector3d &grav);
 	void init();
 	void tare();
 	void reset();
 	void draw(std::shared_ptr<MatrixStack> MV, const std::shared_ptr<Program> p) const;
 	void updatePosNor();
-
+	void computeStiffness(Eigen::MatrixXd &K);
+	void computeGravityForce(Eigen::Vector3d grav, Eigen::VectorXd &f);
+	void computeElasticForce(Eigen::VectorXd &f);
 	int getNumNodes() const { return nodes.size(); }
 	int getNumTets() const { return tets.size(); }
 	int getNumTrifaces() const { return trifaces.size(); }

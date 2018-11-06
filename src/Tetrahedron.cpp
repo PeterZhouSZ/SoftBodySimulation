@@ -1,8 +1,10 @@
 #include "Tetrahedron.h"
 #include "Node.h"
+#include <iostream>
 
 using namespace Eigen;
 using namespace std;
+
 
 Tetrahedron::Tetrahedron(double _young, double _poisson, double _density, Material _material, vector<shared_ptr<Node>> _nodes):
 young(_young),
@@ -15,44 +17,65 @@ nodes(_nodes)
 	this->lambda = young * poisson / ((1.0 + poisson) * (1.0 - 2.0 * poisson));
 
 	precomputation();
-	K.resize(12, 12);
 	K.setZero();
 }
 
+void Tetrahedron::setStiffness(double young) {
+	this->mu = young / (2.0 * (1.0 + poisson));
+	this->lambda = young * poisson / ((1.0 + poisson) * (1.0 - 2.0 * poisson));
+
+}
+
+
+void Tetrahedron::setPoisson(double poisson) {
+	this->mu = young / (2.0 * (1.0 + poisson));
+	this->lambda = young * poisson / ((1.0 + poisson) * (1.0 - 2.0 * poisson));
+
+}
+
+Eigen::Matrix3d Tetrahedron::computeDeformationGradient() {
+
+	for (int i = 0; i < (int)nodes.size() - 1; i++) {
+		this->Ds.col(i) = nodes[i]->x - nodes[3]->x;
+	}
+
+	this->F = Ds * Bm;
+	return this->F;
+}
+
 void Tetrahedron::step(double h, const Eigen::Vector3d &grav) {
-	computeElasticForces();
+	//computeElasticForces();
 	//computeForceDifferentials();
 }
 
 void Tetrahedron::precomputation() {
 
-	assert(nodes.size() == 4);
 	for (int i = 0; i < nodes.size() - 1; i++) {
 		this->Dm.col(i) = nodes[i]->x0 - nodes[3]->x0;
 	}
-	this->Bm = this->Dm.inverse();
-	this->W = 1.0 / 6.0 * Dm.determinant();
-	this->mass = this->W * this->density;
 
+	this->Bm = this->Dm.inverse();
+	this->W = abs(1.0 / 6.0 * Dm.determinant()); // probably negative 
+
+	this->mass = this->W * this->density;
+	
 	// Distribute 1/4 mass to each node
 	for (int i = 0; i < nodes.size(); i++) {
 		nodes[i]->m += this->mass * 0.25;
 	}
 }
 
-void Tetrahedron::computeElasticForces() {
-	assert(nodes.size() == 4);
-	for (int i = 0; i < nodes.size() - 1; i++) {
-		this->Ds.col(i) = nodes[i]->x - nodes[3]->x;
-	}
+void Tetrahedron::computeElasticForces(Eigen::VectorXd f) {
 
-	this->F = Ds * Bm;
+	this->F = computeDeformationGradient();
 	this->P = computePKStress(F, material, mu, lambda);
 	this->H = -W * P * (Bm.transpose());
 
 	for (int i = 0; i < nodes.size() - 1; i++) {
 		nodes[i]->addForce(H.col(i));
 		nodes[3]->addForce(-H.col(i));
+		f.segment<3>(3 * nodes[i]->i) += H.col(i);
+		f.segment<3>(3 * nodes[3]->i) -= H.col(i);
 	}
 }
 
@@ -177,12 +200,19 @@ Matrix3d Tetrahedron::computePKStressDerivative(Matrix3d F, Matrix3d dF, Materia
 }
 
 void Tetrahedron::computeForceDifferentials(VectorXd dx, VectorXd& df) {
-	assert(nodes.size() == 4);
-	for (int i = 0; i < nodes.size() - 1; i++) {
-		this->Ds.col(i) = nodes[i]->x - nodes[3]->x;
-	}
 
-	this->F = Ds * Bm;
+	this->F = computeDeformationGradient();
+	/*for (int i = 0; i < (int)nodes.size(); i++) {
+		
+		for (int ii = 0; ii < (int)nodes.size() - 1; i++) {
+			Vector12d diff;
+			diff.setZero();
+			diff(4 * i + ii) = 1.0;
+
+			this->dDs.col(ii) = diff.segment<3>(3 * ii) - dx.segment<3>(9);
+
+	}*/
+
 
 	for (int i = 0; i < nodes.size() - 1; i++) {
 		this->dDs.col(i) = dx.segment<3>(3 * nodes[i]->i) - dx.segment<3>(3 * nodes[3]->i);
@@ -227,15 +257,12 @@ void Tetrahedron::computeForceDifferentials(VectorXd dx, VectorXd& df) {
 
 void Tetrahedron::tare() {
 
-
 }
 
 void Tetrahedron::reset() {
-
 
 }
 
 
 Tetrahedron:: ~Tetrahedron() {
-
 }
