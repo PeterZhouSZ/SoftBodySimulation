@@ -36,6 +36,7 @@ public:
 	void computeStiffness(Eigen::MatrixXd &K);
 	void computeGravityForce(Eigen::Vector3d grav, Eigen::VectorXd &f);
 	void computeElasticForce(Eigen::VectorXd &f);
+	void computeInvertibleElasticForce(Eigen::VectorXd &f);
 	int getNumNodes() const { return nodes.size(); }
 	int getNumTets() const { return tets.size(); }
 	int getNumTrifaces() const { return trifaces.size(); }

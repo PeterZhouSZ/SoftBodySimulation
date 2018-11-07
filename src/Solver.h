@@ -22,6 +22,7 @@ public:
 	virtual ~Solver();
 	void step(double h);
 	void reset();
+	void clearVelocity();
 	
 	Integrator time_integrator;
 	double y_floor;
@@ -29,6 +30,8 @@ public:
 	bool isMatrixFree;
 	bool isGravity;
 	bool isElasticForce;
+	bool isMosek;
+	bool isFloor;
 	Eigen::Vector3d nor_floor;
 
 private:

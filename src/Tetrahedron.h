@@ -26,15 +26,22 @@ public:
 	void setStiffness(double young);
 	void setPoisson(double poisson);
 	Eigen::Matrix3d computeDeformationGradient();
+	Matrix3x4d computeAreaWeightedVertexNormals();
 	Eigen::Matrix3d computePKStress(Eigen::Matrix3d F, Material mt, double mu, double lambda);
 	Eigen::Matrix3d computePKStressDerivative(Eigen::Matrix3d F, Eigen::Matrix3d dF, Material mt, double mu, double lambda);
 	void computeElasticForces(Eigen::VectorXd f);
+	void computeInvertibleElasticForces(Eigen::VectorXd &f);
+	Eigen::Matrix3d computeInvertiblePKStress(Eigen::Matrix3d F, double mu, double lambda);
 	void computeForceDifferentials(Eigen::VectorXd dx, Eigen::VectorXd& df);
 	std::vector<std::shared_ptr<Node>> nodes;	// i, j, k, l
 	Eigen::MatrixXd getStiffness() const { return this->K; }
 
+	bool isInvert;
+	int clamped;
+
 private:
-	
+	Matrix3x4d Nm;		// area-weighted vertex normals [Irving 04]	(Bm in paper)		
+
 	double young;
 	double poisson;
 	// Lame coefficients
@@ -54,7 +61,13 @@ private:
 	Eigen::Matrix3d F;		// deformation gradient
 	Eigen::Matrix3d P;		// Piola stress
 	Eigen::Matrix3d H;		// forces matrix
-
+	
+	// SVD 
+	Eigen::Matrix3d U;
+	Eigen::Matrix3d V;
+	Eigen::Matrix3d Fhat;	// diagonalized deformation gradient
+	Eigen::Matrix3d Phat;	
+	
 
 	// for force differentials
 	Eigen::Matrix3d dDs;

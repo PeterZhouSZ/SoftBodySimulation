@@ -24,6 +24,7 @@
 #include "Shape.h"
 #include "Scene.h"
 #include "SoftBody.h"
+#include "Solver.h"
 
 using namespace std;
 using namespace Eigen;
@@ -88,6 +89,12 @@ static void char_callback(GLFWwindow *window, unsigned int key)
 			p1 = p0 * 0.9;
 			scene->softbodies[0]->setPoisson(p1);
 			cout << "--- poisson: " << p1 << endl;
+			break;
+		case 'f':
+			scene->solver->y_floor = -9999.0;
+			scene->solver->isGravity = false;
+			scene->solver->clearVelocity();
+			cout << "No floor collision! " << endl;
 			break;
 	}
 }

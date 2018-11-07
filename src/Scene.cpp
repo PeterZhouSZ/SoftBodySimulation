@@ -31,7 +31,7 @@ void Scene::load(const string &RESOURCE_DIR)
 	grav << 0.0, -9.8, 0.0;
 	
 	double mass = 1;
-	double stiffness = 1.0e2;
+	double stiffness = 1.0e3;
 	double possion = 0.35;
 	bool isSparse = false;
 	bool isMatrixFree = false;
@@ -44,6 +44,7 @@ void Scene::load(const string &RESOURCE_DIR)
 	solver = make_shared<Solver>(softbodies, SYMPLECTIC, damping, grav, isSparse, isMatrixFree);
 	solver->y_floor = y_floor;
 	solver->nor_floor = nor_floor;
+	solver->isMosek = true;
 }
 
 void Scene::init()

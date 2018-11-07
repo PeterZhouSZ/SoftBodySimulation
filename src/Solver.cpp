@@ -67,8 +67,9 @@ void Solver::step(double h) {
 	}
 
 	if (isElasticForce) {
-		softbodies[0]->computeElasticForce(f);
-		softbodies[0]->computeStiffness(K);
+		//softbodies[0]->computeElasticForce(f);
+		softbodies[0]->computeInvertibleElasticForce(f);
+		//softbodies[0]->computeStiffness(K);
 		//for (int i = 0; i < (int)tets.size(); ++i) {
 		//	auto tet = tets[i];
 		//	tet->computeElasticForces();
@@ -154,10 +155,11 @@ void Solver::step(double h) {
 			nodes[i]->x = nodes[i]->x0;
 		}
 		else {
-			 Vector3d x_new = nodes[i]->x + nodes[i]->v * h;
-	
+			Vector3d x_new = nodes[i]->x + nodes[i]->v * h;
+			nodes[i]->x = x_new;
 			if (x_new(1) < y_floor && nodes[i]->v(1) < -0.0001) {
-				
+				nodes[i]->v.setZero();
+				nodes[i]->x(1) = y_floor;
 				// Collision detection
 				isCollision = true;
 
@@ -169,93 +171,103 @@ void Solver::step(double h) {
 			}
 		}		
 	}
-	
 
-	if (isCollision) {
-		cout << "col!" << endl;
-		G_sparse.resize(col_ids.size(), mat_n);
-		G_sparse.setFromTriplets(G_.begin(), G_.end());
+	 if (isMosek) {
+		 if (isCollision) {
+			 cout << "col!" << endl;
+			 G_sparse.resize(col_ids.size(), mat_n);
+			 G_sparse.setFromTriplets(G_.begin(), G_.end());
 
-		shared_ptr<QuadProgMosek> program_ = make_shared <QuadProgMosek>();
-		program_->setParamInt(MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_INTPNT);
-		program_->setParamInt(MSK_IPAR_LOG, 10);
-		program_->setParamInt(MSK_IPAR_LOG_FILE, 1);
-		program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_DFEAS, 1e-8);
-		program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_INFEAS, 1e-10);
-		program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_MU_RED, 1e-8);
-		program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_NEAR_REL, 1e3);
-		program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_PFEAS, 1e-8);
-		program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_REL_GAP, 1e-8);
+			 shared_ptr<QuadProgMosek> program_ = make_shared <QuadProgMosek>();
+			 program_->setParamInt(MSK_IPAR_OPTIMIZER, MSK_OPTIMIZER_INTPNT);
+			 program_->setParamInt(MSK_IPAR_LOG, 10);
+			 program_->setParamInt(MSK_IPAR_LOG_FILE, 1);
+			 program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_DFEAS, 1e-8);
+			 program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_INFEAS, 1e-10);
+			 program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_MU_RED, 1e-8);
+			 program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_NEAR_REL, 1e3);
+			 program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_PFEAS, 1e-8);
+			 program_->setParamDouble(MSK_DPAR_INTPNT_QO_TOL_REL_GAP, 1e-8);
 
-		program_->setNumberOfVariables(mat_n);
+			 program_->setNumberOfVariables(mat_n);
 
-		if (isSparse) {
-			program_->setObjectiveMatrix(A_sparse);
+			 if (isSparse) {
+				 program_->setObjectiveMatrix(A_sparse);
 
-		}
-		else
-		{
-			program_->setObjectiveMatrix(A.sparseView());
-			
-		}
+			 }
+			 else
+			 {
+				 program_->setObjectiveMatrix(A.sparseView());
 
-		program_->setObjectiveVector(b);
-		
-		VectorXd xl(mat_n), xu(mat_n);
-		xl.setOnes();
-		xu.setOnes();
-		xl *= -inf;
-		xu *= inf;
+			 }
 
-		VectorXd in_vec(col_ids.size());
-		in_vec.setOnes();
-		in_vec *= 0.0;
-		MatrixXd G(col_ids.size(), mat_n);
-		G.setZero();
-		for (int i = 0; i < col_ids.size(); i++) {
-			int id = col_ids[i];
-			for (int ii = 0; ii < 3; ii++) {
-				G(i, id * 3 + ii) = nor_floor(ii);
-			}		
-		}
-		//mat_to_file(G,"G");
+			 program_->setObjectiveVector(b);
 
-		program_->setNumberOfInequalities(col_ids.size());
-		if (isSparse) {
-			program_->setInequalityMatrix(G_sparse);
-		}
-		else {
-			program_->setInequalityMatrix(G.sparseView());
-		}
-		
-		program_->setInequalityVector(in_vec);
+			 VectorXd xl(mat_n), xu(mat_n);
+			 xl.setOnes();
+			 xu.setOnes();
+			 xl *= -inf;
+			 xu *= inf;
 
-		program_->setLowerVariableBound(xl);
-		program_->setUpperVariableBound(xu);
+			 VectorXd in_vec(col_ids.size());
+			 in_vec.setOnes();
+			 in_vec *= 0.0;
+			 MatrixXd G(col_ids.size(), mat_n);
+			 G.setZero();
+			 for (int i = 0; i < col_ids.size(); i++) {
+				 int id = col_ids[i];
+				 for (int ii = 0; ii < 3; ii++) {
+					 G(i, id * 3 + ii) = nor_floor(ii);
+				 }
+			 }
+			 //mat_to_file(G,"G");
 
-		bool success = program_->solve();
-		x = program_->getPrimalSolution();
+			 program_->setNumberOfInequalities(col_ids.size());
+			 if (isSparse) {
+				 program_->setInequalityMatrix(G_sparse);
+			 }
+			 else {
+				 program_->setInequalityMatrix(G.sparseView());
+			 }
+
+			 program_->setInequalityVector(in_vec);
+
+			 program_->setLowerVariableBound(xl);
+			 program_->setUpperVariableBound(xu);
+
+			 bool success = program_->solve();
+			 x = program_->getPrimalSolution();
+		 }
+
+		 for (int i = 0; i < (int)nodes.size(); ++i) {
+			 if (nodes[i]->fixed) {
+				 nodes[i]->v.setZero();
+			 }
+			 else {
+				 nodes[i]->v = x.segment<3>(3 * i);
+			 }
+		 }
+
+		 for (int i = 0; i < (int)nodes.size(); ++i) {
+
+			 if (nodes[i]->fixed) {
+				 nodes[i]->x = nodes[i]->x0;
+			 }
+			 else {
+				 nodes[i]->x += nodes[i]->v * h;
+			 }
+		 }
 	}
+
+
+}
+
+void Solver::clearVelocity() {
+	auto nodes = softbodies[0]->getNodes();
 
 	for (int i = 0; i < (int)nodes.size(); ++i) {
-		if (nodes[i]->fixed) {
-			nodes[i]->v.setZero();
-		}
-		else {
-			nodes[i]->v = x.segment<3>(3 * i);
-		}
+		nodes[i]->v.setZero();
 	}
-
-	for (int i = 0; i < (int)nodes.size(); ++i) {
-
-		if (nodes[i]->fixed) {
-			nodes[i]->x = nodes[i]->x0;
-		}
-		else {
-			nodes[i]->x += nodes[i]->v * h;
-		}
-	}
-
 }
 
 void Solver::reset() {

@@ -135,6 +135,15 @@ void SoftBody::computeElasticForce(Eigen::VectorXd &f) {
 
 }
 
+void SoftBody::computeInvertibleElasticForce(Eigen::VectorXd &f) {
+
+	for (int i = 0; i < (int)tets.size(); i++) {
+		auto tet = tets[i];
+		tet->computeInvertibleElasticForces(f);
+	}
+
+}
+
 void SoftBody::computeStiffness(MatrixXd &K) {
 	VectorXd df(3 * nodes.size());
 	VectorXd Dx = df;

@@ -37,6 +37,7 @@ public:
 	std::shared_ptr<Solver> solver;
 	
 private:
+	bool isFloor;
 	bool isElasticForce;
 	bool isGravity;
 	double t;
