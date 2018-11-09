@@ -4,7 +4,7 @@
 
 using namespace Eigen;
 using namespace std;
-#define Fthreshold 0.0000005
+#define Fthreshold 0.2
 
 Tetrahedron::Tetrahedron(double _young, double _poisson, double _density, Material _material, vector<shared_ptr<Node>> _nodes):
 young(_young),
@@ -75,15 +75,21 @@ Matrix3x4d Tetrahedron::computeAreaWeightedVertexNormals() {
 	abd_area = 0.5 * sqrt(abd_normal.dot(abd_normal));
 	bcd_area = 0.5 * sqrt(bcd_normal.dot(bcd_normal));
 
-	acb_normal.normalized();
-	adc_normal.normalized();
-	abd_normal.normalized();
-	bcd_normal.normalized();
+	acb_normal.normalize();
+	adc_normal.normalize();
+	abd_normal.normalize();
+	bcd_normal.normalize();
 
-	this->Nm.col(0) = (acb_area * acb_normal + adc_area * adc_normal + abd_area * abd_normal) / 3.0;
-	this->Nm.col(1) = (acb_area * acb_normal + abd_area * abd_normal + bcd_area * bcd_normal) / 3.0;
-	this->Nm.col(2) = (acb_area * acb_normal + adc_area * adc_normal + bcd_area * bcd_normal) / 3.0;
-	this->Nm.col(3) = (adc_area * adc_normal + abd_area * abd_normal + bcd_area * bcd_normal) / 3.0;
+	/*cout << "acb nor" << endl << acb_normal << endl;
+	cout << "adc nor" << endl << adc_normal << endl;
+	cout << "abd nor" << endl << abd_normal << endl;
+	cout << "bcd nor" << endl << bcd_normal << endl;*/
+
+
+	this->Nm.col(0) = -(acb_area * acb_normal + adc_area * adc_normal + abd_area * abd_normal) / 3.0;
+	this->Nm.col(1) = -(acb_area * acb_normal + abd_area * abd_normal + bcd_area * bcd_normal) / 3.0;
+	this->Nm.col(2) = -(acb_area * acb_normal + adc_area * adc_normal + bcd_area * bcd_normal) / 3.0;
+	this->Nm.col(3) = -(adc_area * adc_normal + abd_area * abd_normal + bcd_area * bcd_normal) / 3.0;
 
 	return this->Nm;
 }
@@ -100,9 +106,9 @@ void Tetrahedron::precomputation() {
 	}
 
 	this->Bm = this->Dm.inverse();
-	this->W = 1.0 / 6.0 * Dm.determinant(); // probably negative 
+	this->W = abs(1.0 / 6.0 * Dm.determinant()); // probably negative 
 
-	this->mass = abs(this->W * this->density);
+	this->mass = this->W * this->density;
 	
 	// Distribute 1/4 mass to each node
 	for (int i = 0; i < nodes.size(); i++) {
@@ -112,7 +118,7 @@ void Tetrahedron::precomputation() {
 	computeAreaWeightedVertexNormals();
 }
 
-void Tetrahedron::computeElasticForces(Eigen::VectorXd f) {
+void Tetrahedron::computeElasticForces(Eigen::VectorXd &f) {
 
 	this->F = computeDeformationGradient();
 	this->P = computePKStress(F, material, mu, lambda);
@@ -145,6 +151,12 @@ void Tetrahedron::computeInvertibleElasticForces(VectorXd &f) {
 		//cout << "error in svd " << endl;
 	}
 	this->Fhat = Fhat_vec.asDiagonal();
+	cout << "Fhat:" << endl << this->Fhat << endl;
+
+	// Test if correct. checked
+	//cout << "F" << F << endl;
+	//cout << "Fhat" << Fhat << endl;
+	//cout << "UFV'" << U * Fhat * V.transpose() << endl;
 
 	// SVD result is available in this->U, this->V, Fhat_vec, this->Fhat
 
@@ -158,28 +170,42 @@ void Tetrahedron::computeInvertibleElasticForces(VectorXd &f) {
 			clamped |= (1 << i);
 		}
 	}
-
+	cout << "Fhat:" << endl << this->Fhat << endl;
 	//clamped = 0; // disable clamping
 
 	// Computes the internal forces
 	// Computes P first and computes the nodal forces G=PBm in section 4 of [Irving 04]
 
 	// Computes the diagonal P tensor
+
 	this->Phat = computeInvertiblePKStress(this->Fhat, mu, lambda);
+	cout << "Phat:" << endl << this->Phat << endl;
+	// The result is the same as 
+	// MatrixXd temp = computePKStress(this->Fhat, material, mu, lambda);
+
 
 	// P = U * diag(Phat) * V'
+
+	MatrixXd temp = this->U.transpose() * this->P * this->V;
 	this->P = this->U * this->Phat * this->V.transpose();
+	
+	//cout << "P:"<< endl<< this->P << endl;
 
 	// Computes the nodal forces by G=PBm=PNm
+	//cout << "forces: " << endl << this->H << endl;
+	cout << "instead: " << endl << this->P * this->Nm.block<3, 3>(0, 0) << endl;
 
-	for (int i = 0; i < (int)nodes.size(); i++) {
+	for (int i = 0; i < (int)nodes.size()-1; i++) {
 		f.segment<3>(3 * nodes[i]->i) += this->P * this->Nm.col(i);
+		f.segment<3>(3 * nodes[3]->i) -= this->P * this->Nm.col(i);
+
 	}
 
 }
 
 
 Matrix3d Tetrahedron::computeInvertiblePKStress(Matrix3d F, double mu, double lambda) {
+	// Neohookean
 	Vector3d invariants;
 	Vector3d lambda1, lambda2;
 	lambda1 << F(0, 0), F(1, 1), F(2, 2);
@@ -381,17 +407,4 @@ void Tetrahedron::computeForceDifferentials(VectorXd dx, VectorXd& df) {
 		}
 		K.block<12, 3>(0, 3 * row) = Kb;
 	}*/
-}
-
-
-void Tetrahedron::tare() {
-
-}
-
-void Tetrahedron::reset() {
-
-}
-
-
-Tetrahedron:: ~Tetrahedron() {
 }

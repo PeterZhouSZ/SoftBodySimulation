@@ -68,8 +68,17 @@ void Solver::step(double h) {
 
 	if (isElasticForce) {
 		//softbodies[0]->computeElasticForce(f);
+		VectorXd fcopy = f;
+		softbodies[0]->computeElasticForce(fcopy);
+		
+
 		softbodies[0]->computeInvertibleElasticForce(f);
+
+		//cout << "fdiff:" << fcopy - f << endl;
+
 		//softbodies[0]->computeStiffness(K);
+
+
 		//for (int i = 0; i < (int)tets.size(); ++i) {
 		//	auto tet = tets[i];
 		//	tet->computeElasticForces();
@@ -110,15 +119,8 @@ void Solver::step(double h) {
 
 	b = M * v + h * f;
 
-
 	if (isMatrixFree) {
-		//MatrixReplacement A_rp(softbodies, M);
-		//Todo getcol 
 
-
-		/*ConjugateGradient<MatrixReplacement, Lower | Upper, IdentityPreconditioner> cg;
-		cg.compute(A_rp);
-		x = cg.solve(b);*/
 	}else if(isSparse){
 		A_sparse.setFromTriplets(A_.begin(), A_.end());
 		ConjugateGradient< SparseMatrix<double> > cg;
@@ -130,6 +132,8 @@ void Solver::step(double h) {
 	}else {
 		A = M + h * damping(0) * M + h * h * damping(1) * K;
 		x = A.ldlt().solve(b);
+		cout << "x" << x << endl;
+
 		/*mat_to_file(A, "A");
 		mat_to_file(K, "K");
 		vec_to_file(b, "b");
@@ -152,7 +156,7 @@ void Solver::step(double h) {
 	for (int i = 0; i < (int)nodes.size(); ++i) {
 
 		if (nodes[i]->fixed) {
-			nodes[i]->x = nodes[i]->x0;
+			nodes[i]->x = nodes[i]->x;
 		}
 		else {
 			Vector3d x_new = nodes[i]->x + nodes[i]->v * h;

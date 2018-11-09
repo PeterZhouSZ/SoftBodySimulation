@@ -20,8 +20,8 @@ class SoftBody
 {
 public:
 	SoftBody();
-	SoftBody(double _young, double _poisson, Material _material);
-	virtual ~SoftBody();
+	SoftBody(double _young, double _poisson, Material _material, std::string mesh_name);
+	virtual ~SoftBody() {}
 
 	double getStiffness() { return this->young; }
 	double getPoisson() { return this->poisson; }
@@ -29,10 +29,10 @@ public:
 	void setPoisson(double poisson);
 	void step(double h, const Eigen::Vector3d &grav);
 	void init();
-	void tare();
-	void reset();
 	void draw(std::shared_ptr<MatrixStack> MV, const std::shared_ptr<Program> p) const;
 	void updatePosNor();
+	void fixPointsByYvalue(double y);
+	void flatten(double y);
 	void computeStiffness(Eigen::MatrixXd &K);
 	void computeGravityForce(Eigen::Vector3d grav, Eigen::VectorXd &f);
 	void computeElasticForce(Eigen::VectorXd &f);

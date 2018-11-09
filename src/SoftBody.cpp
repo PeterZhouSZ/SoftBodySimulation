@@ -28,13 +28,13 @@ typedef Eigen::Triplet<double> T;
 SoftBody::SoftBody() {
 }
 
-SoftBody::SoftBody(double _young, double _poisson, Material _material):
+SoftBody::SoftBody(double _young, double _poisson, Material _material, std::string mesh_name):
 young(_young),
 poisson(_poisson),
 mt(_material)
 {
 	tetgenio input_mesh, output_mesh;
-	input_mesh.load_ply("bunny100");
+	input_mesh.load_ply((char *)mesh_name.c_str());
 	tetrahedralize("pqz", &input_mesh, &output_mesh);
 	
 	nFacets = output_mesh.numberoffacets;
@@ -55,13 +55,7 @@ mt(_material)
 		node->v = node->v0;
 		node->m = 0.0;
 		node->i = i;
-		if (node->x(1) > 111.3) {
-			node->fixed = true;
-		}
-		else {
-			node->fixed = false;
-		}
-		
+		node->fixed = false;	
 	}
 
 	// Create TriFaces
@@ -102,13 +96,25 @@ mt(_material)
 	}
 }
 
+void SoftBody::fixPointsByYvalue(double y) {
+	for (int i = 0; i < (int)nodes.size(); i++) {
+		auto node = nodes[i];
+
+		if (node->x(1) > y) {
+			node->fixed = true;
+		}
+		else {
+			node->fixed = false;
+		}
+	}
+}
+
 void SoftBody::setStiffness(double young) {
 	this->young = young;
 	for (int i = 0; i < (int)tets.size(); i++) {
 		auto tet = tets[i];
 		tet->setStiffness(young);
 	}
-
 }
 
 void SoftBody::setPoisson(double poisson) {
@@ -191,6 +197,15 @@ void SoftBody::init() {
 	assert(glGetError() == GL_NO_ERROR);
 }
 
+void SoftBody::flatten(double y) {
+	for (int i = 0; i < (int)nodes.size(); i++) {
+		if (!nodes[i]->fixed) {
+			nodes[i]->x(1) = y;
+		}
+		
+	}
+}
+
 void SoftBody::updatePosNor() {
 	for (int i = 0; i < trifaces.size(); i++) {
 		auto triface = trifaces[i];
@@ -212,17 +227,6 @@ void SoftBody::updatePosNor() {
 		}
 	}
 }
-
-void SoftBody::tare() {
-
-}
-
-
-void SoftBody::reset() {
-
-}
-
-
 
 void SoftBody::draw(std::shared_ptr<MatrixStack> MV, const std::shared_ptr<Program> p) const {
 	// Draw mesh
@@ -255,8 +259,4 @@ void SoftBody::draw(std::shared_ptr<MatrixStack> MV, const std::shared_ptr<Progr
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	MV->popMatrix();
-}
-
-SoftBody::~SoftBody() {
-
 }

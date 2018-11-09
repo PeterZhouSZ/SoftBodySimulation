@@ -30,6 +30,8 @@ public:
 	void reset();
 	void step();
 	void toggleElasticForce();
+	void toggleGravForce();
+	void flattenSoftBody(double y);
 	void draw(std::shared_ptr<MatrixStack> MV, const std::shared_ptr<Program> prog) const;
 	
 	double getTime() const { return t; }

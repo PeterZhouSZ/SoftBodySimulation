@@ -16,12 +16,12 @@ class Tetrahedron
 {
 public:
 	Tetrahedron(double _young, double _poisson, double _density, Material _material, std::vector<std::shared_ptr<Node>> _nodes);
-	virtual ~Tetrahedron();
+	virtual ~Tetrahedron() {}
 
 	void step(double h, const Eigen::Vector3d &grav);
 
-	void tare();
-	void reset();
+	void tare() {}
+	void reset() {}
 	void precomputation();
 	void setStiffness(double young);
 	void setPoisson(double poisson);
@@ -29,7 +29,7 @@ public:
 	Matrix3x4d computeAreaWeightedVertexNormals();
 	Eigen::Matrix3d computePKStress(Eigen::Matrix3d F, Material mt, double mu, double lambda);
 	Eigen::Matrix3d computePKStressDerivative(Eigen::Matrix3d F, Eigen::Matrix3d dF, Material mt, double mu, double lambda);
-	void computeElasticForces(Eigen::VectorXd f);
+	void computeElasticForces(Eigen::VectorXd &f);
 	void computeInvertibleElasticForces(Eigen::VectorXd &f);
 	Eigen::Matrix3d computeInvertiblePKStress(Eigen::Matrix3d F, double mu, double lambda);
 	void computeForceDifferentials(Eigen::VectorXd dx, Eigen::VectorXd& df);

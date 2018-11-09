@@ -66,6 +66,12 @@ static void char_callback(GLFWwindow *window, unsigned int key)
 		case 'e':
 			scene->toggleElasticForce();
 			break;
+		case 'g':
+			scene->toggleGravForce();
+			break;
+		case 'i':
+			scene->flattenSoftBody(1.0);
+			break;
 		case 'S':
 			young0 = scene->softbodies[0]->getStiffness();
 			young1 = young0 * 1.1;
