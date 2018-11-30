@@ -30,6 +30,7 @@ Solver::Solver(vector< shared_ptr<SoftBody> > _softbodies, Integrator _time_inte
 	Dx.setIdentity();
 	A_sparse.resize(nVerts, nVerts);
 	K.resize(nVerts, nVerts);
+	Ktemp.resize(nVerts, nVerts);
 	M.resize(nVerts, nVerts);
 	v.resize(nVerts);
 	b.resize(nVerts);
@@ -70,19 +71,22 @@ void Solver::step(double h) {
 		//softbodies[0]->computeElasticForce(f);
 		VectorXd fcopy = f;
 		softbodies[0]->computeElasticForce(fcopy);
-		
+		softbodies[0]->computeStiffness(Ktemp);
+	
 
 		softbodies[0]->computeInvertibleElasticForce(f);
+		//cout << f << endl;
+		//cout << "fdiff:" << (fcopy - f).norm()<< endl;
 
-		//cout << "fdiff:" << fcopy - f << endl;
-
-		//softbodies[0]->computeStiffness(K);
-
-
+		softbodies[0]->computeInvertibleStiffness(K);
+		//cout << K << endl;
+		//cout << "Kdiff:" << (K - Ktemp).norm() << endl;
+		
+		//cout << Ktemp << endl;
 		//for (int i = 0; i < (int)tets.size(); ++i) {
 		//	auto tet = tets[i];
-		//	tet->computeElasticForces();
-		//
+		//	tet->computeElasticForces(fcopy);
+
 		//	// Assemble K matrix
 		//	for (int ii = 0; ii < 4; ii++) {
 		//		auto node = tet->nodes[ii];
@@ -91,11 +95,16 @@ void Solver::step(double h) {
 		//		for (int iii = 0; iii < 3; iii++) {
 		//			VectorXd df(mat_n);
 		//			df.setZero();
- 	//				tet->computeForceDifferentials(Dx.col(3 * id + iii), df);
+		//			tet->computeForceDifferentials(Dx.col(3 * id + iii), df);
 		//			K.col(3 * id + iii) += df;
 
 		//		}
 		//	}
+		//}
+
+		//cout << "K" <<endl << K << endl;
+		//cout << "Ktemp" << endl << Ktemp << endl;
+
 		//	/*for (int row = 0; row < 4; row++) {
 		//		MatrixXd Kb(12, 3);
 		//		Kb = tets[i]->getStiffness().block<12, 3>(0, 3 * row);
@@ -132,7 +141,7 @@ void Solver::step(double h) {
 	}else {
 		A = M + h * damping(0) * M + h * h * damping(1) * K;
 		x = A.ldlt().solve(b);
-		cout << "x" << x << endl;
+		//cout << "x" << x << endl;
 
 		/*mat_to_file(A, "A");
 		mat_to_file(K, "K");
@@ -286,7 +295,7 @@ void Solver::reset() {
 	G_.clear();
 	A_sparse.setZero();
 	G_sparse.setZero();
-
+	Ktemp.setZero();
 }
 
 Solver::~Solver() {

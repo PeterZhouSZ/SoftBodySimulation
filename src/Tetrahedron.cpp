@@ -4,7 +4,7 @@
 
 using namespace Eigen;
 using namespace std;
-#define Fthreshold 0.2
+#define Fthreshold 0.1
 
 Tetrahedron::Tetrahedron(double _young, double _poisson, double _density, Material _material, vector<shared_ptr<Node>> _nodes):
 young(_young),
@@ -106,7 +106,7 @@ void Tetrahedron::precomputation() {
 	}
 
 	this->Bm = this->Dm.inverse();
-	this->W = abs(1.0 / 6.0 * Dm.determinant()); // probably negative 
+	this->W = (1.0 / 6.0 * Dm.determinant()); // probably negative 
 
 	this->mass = this->W * this->density;
 	
@@ -147,11 +147,11 @@ void Tetrahedron::computeInvertibleElasticForces(VectorXd &f) {
 	int modifiedSVD = 1;
 	Vector3d Fhat_vec;
 
-	if (!SVD(this->F, this->U, Fhat_vec, this->V, 1e-8, modifiedSVD)) {
+	if (!SVD(this->F, this->U, Fhat_vec, this->V, 1e-9, modifiedSVD)) {
 		//cout << "error in svd " << endl;
 	}
 	this->Fhat = Fhat_vec.asDiagonal();
-	cout << "Fhat:" << endl << this->Fhat << endl;
+	//cout << "Fhat:" << endl << this->Fhat << endl;
 
 	// Test if correct. checked
 	//cout << "F" << F << endl;
@@ -170,7 +170,7 @@ void Tetrahedron::computeInvertibleElasticForces(VectorXd &f) {
 			clamped |= (1 << i);
 		}
 	}
-	cout << "Fhat:" << endl << this->Fhat << endl;
+	//cout << "Fhat:" << endl << this->Fhat << endl;
 	//clamped = 0; // disable clamping
 
 	// Computes the internal forces
@@ -178,12 +178,10 @@ void Tetrahedron::computeInvertibleElasticForces(VectorXd &f) {
 
 	// Computes the diagonal P tensor
 
-	this->Phat = computeInvertiblePKStress(this->Fhat, mu, lambda);
-	cout << "Phat:" << endl << this->Phat << endl;
+	this->Phat = computePKStress(this->Fhat, material, mu, lambda);
+	//cout << "Phat:" << endl << this->Phat << endl;
 	// The result is the same as 
 	// MatrixXd temp = computePKStress(this->Fhat, material, mu, lambda);
-
-
 	// P = U * diag(Phat) * V'
 
 	MatrixXd temp = this->U.transpose() * this->P * this->V;
@@ -193,16 +191,13 @@ void Tetrahedron::computeInvertibleElasticForces(VectorXd &f) {
 
 	// Computes the nodal forces by G=PBm=PNm
 	//cout << "forces: " << endl << this->H << endl;
-	cout << "instead: " << endl << this->P * this->Nm.block<3, 3>(0, 0) << endl;
-
+	//cout << "instead: " << endl << this->P * this->Nm.block<3, 3>(0, 0) << endl;
+	this->H = -W * this->P * (Bm.transpose());
 	for (int i = 0; i < (int)nodes.size()-1; i++) {
-		f.segment<3>(3 * nodes[i]->i) += this->P * this->Nm.col(i);
-		f.segment<3>(3 * nodes[3]->i) -= this->P * this->Nm.col(i);
-
+		f.segment<3>(3 * nodes[i]->i) += this->H.col(i);
+		f.segment<3>(3 * nodes[3]->i) -= this->H.col(i);
 	}
-
 }
-
 
 Matrix3d Tetrahedron::computeInvertiblePKStress(Matrix3d F, double mu, double lambda) {
 	// Neohookean
@@ -232,7 +227,6 @@ Matrix3d Tetrahedron::computeInvertiblePKStress(Matrix3d F, double mu, double la
 	return this->Phat;
 
 }
-
 
 Matrix3d Tetrahedron::computePKStress(Matrix3d F, Material mt, double mu, double lambda) {
 	Matrix3d E, P, I;
@@ -407,4 +401,140 @@ void Tetrahedron::computeForceDifferentials(VectorXd dx, VectorXd& df) {
 		}
 		K.block<12, 3>(0, 3 * row) = Kb;
 	}*/
+}
+
+void Tetrahedron::computeForceDifferentials(MatrixXd &K_global) {
+
+	this->K.setZero();
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			this->dDs.setZero();
+			this->dDs(j, i) = 1.0;
+			//cout << this->dDs << endl;
+			this->dF = this->dDs * this->Bm;
+			this->dP = computePKStressDerivative(this->F, this->dF, material, mu, lambda);
+			this->dH = -W * dP * (Bm.transpose());
+			//Matrix3d hessian = this->dP * this->Nm.block<3, 3>(0, 0);
+			for (int t = 0; t < 3; t++) {
+				Vector3d temp = this->dH.col(t);
+				this->K.block<3, 1>(t * 3, i * 3 + j) = temp;				
+				this->K.block<3, 1>(9, i * 3 + j) -= temp;
+				this->K.block<1, 3>(i * 3 + j, 9) -= temp;
+			}
+		}
+	}
+
+	this->K.block<3, 3>(9, 9) = -this->K.block<3, 3>(0, 9) - this->K.block<3, 3>(3, 9) - this->K.block<3, 3>(6, 9);
+	//cout << "Ki" << endl << this->K << endl;
+	//VectorXcd ev = this->K.eigenvalues();
+	//cout << ev << endl;
+
+	int i = 3 * nodes[0]->i;
+	int j = 3 * nodes[1]->i;
+	int k = 3 * nodes[2]->i;
+	int l = 3 * nodes[3]->i;
+
+	K_global.block<3, 3>(i, i) += this->K.block<3, 3>(0, 0);
+	K_global.block<3, 3>(i, j) += this->K.block<3, 3>(0, 3);
+	K_global.block<3, 3>(i, k) += this->K.block<3, 3>(0, 6);
+	K_global.block<3, 3>(i, l) += this->K.block<3, 3>(0, 9);
+
+	K_global.block<3, 3>(j, i) += this->K.block<3, 3>(3, 0);
+	K_global.block<3, 3>(j, j) += this->K.block<3, 3>(3, 3);
+	K_global.block<3, 3>(j, k) += this->K.block<3, 3>(3, 6);
+	K_global.block<3, 3>(j, l) += this->K.block<3, 3>(3, 9);
+
+	K_global.block<3, 3>(k, i) += this->K.block<3, 3>(6, 0);
+	K_global.block<3, 3>(k, j) += this->K.block<3, 3>(6, 3);
+	K_global.block<3, 3>(k, k) += this->K.block<3, 3>(6, 6);
+	K_global.block<3, 3>(k, l) += this->K.block<3, 3>(6, 9);
+
+	K_global.block<3, 3>(l, i) += this->K.block<3, 3>(9, 0);
+	K_global.block<3, 3>(l, j) += this->K.block<3, 3>(9, 3);
+	K_global.block<3, 3>(l, k) += this->K.block<3, 3>(9, 6);
+	K_global.block<3, 3>(l, l) += this->K.block<3, 3>(9, 9);
+}
+
+void Tetrahedron::computeInvertibleForceDifferentials(MatrixXd &K_global) {
+	this->F = computeDeformationGradient();
+	// The deformation gradient is available in this->F
+
+	// SVD on the deformation gradient
+	int modifiedSVD = 1;
+	Vector3d Fhat_vec;
+
+	if (!SVD(this->F, this->U, Fhat_vec, this->V, 1e-8, modifiedSVD)) {
+		//cout << "error in svd " << endl;
+	}
+	this->Fhat = Fhat_vec.asDiagonal();
+	// Test if correct. checked
+
+	// SVD result is available in this->U, this->V, Fhat_vec, this->Fhat
+
+	// clamp if below the principal stretch threshold
+	clamped = 0;
+	for (int i = 0; i < 3; i++)
+	{
+		if (this->Fhat(i, i) < Fthreshold)
+		{
+			this->Fhat(i, i) = Fthreshold;
+			clamped |= (1 << i);
+		}
+	}
+
+	this->K.setZero();
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			this->dDs.setZero();
+			this->dDs(j, i) = 1.0;
+			this->dF = this->dDs * this->Bm;
+			Matrix3d UTdFV = this->U.transpose() * this->dF * this->V;
+			this->dPhat = computePKStressDerivative(this->Fhat, UTdFV, material, mu, lambda);
+
+			this->dP = this->U * this->dPhat * this->V.transpose();
+			//Matrix3d hessian = this->dP * this->Nm.block<3, 3>(0, 0);
+			this->dH = -W * dP * (Bm.transpose());
+			for (int t = 0; t < 3; t++) {
+				Vector3d temp = this->dH.col(t);
+				this->K.block<3, 1>(t * 3, i * 3 + j) = temp;
+				this->K.block<3, 1>(9, i * 3 + j) -= temp;
+				this->K.block<1, 3>(i * 3 + j, 9) -= temp;
+			}
+		}
+	}
+
+	this->K.block<3, 3>(9, 9) = - this->K.block<3, 3>(0, 9) - this->K.block<3, 3>(3, 9) - this->K.block<3, 3>(6, 9);
+	//cout << "Ki" << endl << this->K << endl;
+	VectorXcd ev = this->K.eigenvalues();
+	cout << ev << endl;
+	for (int i = 0; i < ev.size(); i++) {
+		if (ev(i).real() < 0) {
+			//cout << ev(i) << endl;
+		}
+	}
+
+	int i = 3*nodes[0]->i;
+	int j = 3*nodes[1]->i;
+	int k = 3*nodes[2]->i;
+	int l = 3*nodes[3]->i;
+
+	K_global.block<3, 3>(i, i) += this->K.block<3, 3>(0, 0);
+	K_global.block<3, 3>(i, j) += this->K.block<3, 3>(0, 3);
+	K_global.block<3, 3>(i, k) += this->K.block<3, 3>(0, 6);
+	K_global.block<3, 3>(i, l) += this->K.block<3, 3>(0, 9);
+
+	K_global.block<3, 3>(j, i) += this->K.block<3, 3>(3, 0);
+	K_global.block<3, 3>(j, j) += this->K.block<3, 3>(3, 3);
+	K_global.block<3, 3>(j, k) += this->K.block<3, 3>(3, 6);
+	K_global.block<3, 3>(j, l) += this->K.block<3, 3>(3, 9);
+
+	K_global.block<3, 3>(k, i) += this->K.block<3, 3>(6, 0);
+	K_global.block<3, 3>(k, j) += this->K.block<3, 3>(6, 3);
+	K_global.block<3, 3>(k, k) += this->K.block<3, 3>(6, 6);
+	K_global.block<3, 3>(k, l) += this->K.block<3, 3>(6, 9);
+
+	K_global.block<3, 3>(l, i) += this->K.block<3, 3>(9, 0);
+	K_global.block<3, 3>(l, j) += this->K.block<3, 3>(9, 3);
+	K_global.block<3, 3>(l, k) += this->K.block<3, 3>(9, 6);
+	K_global.block<3, 3>(l, l) += this->K.block<3, 3>(9, 9);
 }

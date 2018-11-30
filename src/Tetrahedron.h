@@ -30,7 +30,10 @@ public:
 	Eigen::Matrix3d computePKStress(Eigen::Matrix3d F, Material mt, double mu, double lambda);
 	Eigen::Matrix3d computePKStressDerivative(Eigen::Matrix3d F, Eigen::Matrix3d dF, Material mt, double mu, double lambda);
 	void computeElasticForces(Eigen::VectorXd &f);
+	void computeForceDifferentials(Eigen::MatrixXd &K_global);
+
 	void computeInvertibleElasticForces(Eigen::VectorXd &f);
+	void computeInvertibleForceDifferentials(Eigen::MatrixXd &K_global);
 	Eigen::Matrix3d computeInvertiblePKStress(Eigen::Matrix3d F, double mu, double lambda);
 	void computeForceDifferentials(Eigen::VectorXd dx, Eigen::VectorXd& df);
 	std::vector<std::shared_ptr<Node>> nodes;	// i, j, k, l
@@ -67,7 +70,8 @@ private:
 	Eigen::Matrix3d V;
 	Eigen::Matrix3d Fhat;	// diagonalized deformation gradient
 	Eigen::Matrix3d Phat;	
-	
+	Eigen::Matrix3d dPhat;
+
 
 	// for force differentials
 	Eigen::Matrix3d dDs;

@@ -41,6 +41,7 @@ private:
 	Eigen::SparseMatrix<double> G_sparse;
 	Eigen::MatrixXd A;
 	Eigen::MatrixXd K;
+	Eigen::MatrixXd Ktemp;
 	Eigen::MatrixXd Dx;
 	Eigen::MatrixXd M;
 	Eigen::MatrixXd J;

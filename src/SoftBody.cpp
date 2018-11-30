@@ -151,24 +151,38 @@ void SoftBody::computeInvertibleElasticForce(Eigen::VectorXd &f) {
 }
 
 void SoftBody::computeStiffness(MatrixXd &K) {
-	VectorXd df(3 * nodes.size());
-	VectorXd Dx = df;
-
 	for (int i = 0; i < (int)tets.size(); i++) {
 		auto tet = tets[i];
-		for (int ii = 0; ii < 4; ii++) {
-			auto node = tet->nodes[ii];
-			int id = node->i;
+		//tet->computeInvertibleForceDifferentials(K);
+		tet->computeForceDifferentials(K);
+	}
 
-			for (int iii = 0; iii < 3; iii++) {
-				df.setZero();
-				Dx.setZero();
-				Dx(3 * id + iii) = 1.0;
-				tet->computeForceDifferentials(Dx, df);
-				//K.col(col + iii) += df;
-				K.col(3 * id + iii) += df;
-			}
-		}
+	//VectorXd df(3 * nodes.size());
+	//VectorXd Dx = df;
+
+	//for (int i = 0; i < (int)tets.size(); i++) {
+	//	auto tet = tets[i];
+	//	for (int ii = 0; ii < 4; ii++) {
+	//		auto node = tet->nodes[ii];
+	//		int id = node->i;
+
+	//		for (int iii = 0; iii < 3; iii++) {
+	//			df.setZero();
+	//			Dx.setZero();
+	//			Dx(3 * id + iii) = 1.0;
+	//			tet->computeForceDifferentials(Dx, df);
+	//			//K.col(col + iii) += df;
+	//			K.col(3 * id + iii) += df;
+	//		}
+	//	}
+	//}
+
+}
+
+void SoftBody::computeInvertibleStiffness(MatrixXd &K) {
+	for (int i = 0; i < (int)tets.size(); i++) {
+		auto tet = tets[i];
+		tet->computeInvertibleForceDifferentials(K);
 	}
 
 }

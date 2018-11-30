@@ -34,6 +34,8 @@ public:
 	void fixPointsByYvalue(double y);
 	void flatten(double y);
 	void computeStiffness(Eigen::MatrixXd &K);
+	void computeInvertibleStiffness(Eigen::MatrixXd &K);
+
 	void computeGravityForce(Eigen::Vector3d grav, Eigen::VectorXd &f);
 	void computeElasticForce(Eigen::VectorXd &f);
 	void computeInvertibleElasticForce(Eigen::VectorXd &f);
